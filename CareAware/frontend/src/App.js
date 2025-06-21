@@ -10,6 +10,7 @@ import Messages from './components/Messages';
 import Profile from './components/Profile';
 import Settings from './components/Settings';
 import ComposePost from './components/ComposePost';
+import CallPage from './components/CallPage';
 
 function App() {
   const [darkMode, setDarkMode] = useState(false);
@@ -50,6 +51,7 @@ function App() {
               />
             } />
             <Route path="/compose" element={<ComposePost currentUser={currentUser} />} />
+            <Route path="/call/:userId" element={<CallPage />} />
           </Routes>
         </div>
       </div>

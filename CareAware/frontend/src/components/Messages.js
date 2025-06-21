@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Icon from './Icon';
 
 const Messages = ({ currentUser }) => {
@@ -8,6 +9,7 @@ const Messages = ({ currentUser }) => {
   const [aiAnalysis, setAiAnalysis] = useState(null);
   const [loading, setLoading] = useState(true);
   const [sendingMessage, setSendingMessage] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchConversations();
@@ -203,6 +205,13 @@ const Messages = ({ currentUser }) => {
     }
   };
 
+  const handleStartCall = () => {
+    if (!selectedConversation) return;
+    navigate(`/call/${selectedConversation.otherUser.id}`, { 
+      state: { user: selectedConversation.otherUser } 
+    });
+  };
+
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -234,11 +243,11 @@ const Messages = ({ currentUser }) => {
   }
 
   return (
-    <div className="main-column">
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
       <div className="page-header">
         <h1>Messages</h1>
       </div>
-      <div className="messages-container">
+      <div className="messages-container" style={{ flex: 1, minHeight: 0 }}>
         <div className="conversations-list">
           <div className="search-bar" style={{ padding: 'var(--space-md)', borderBottom: '1px solid var(--border-primary)' }}>
             <input type="text" placeholder="Search conversations..." className="form-input" style={{ width: '100%', borderRadius: 'var(--radius-full)' }} />
@@ -341,6 +350,15 @@ const Messages = ({ currentUser }) => {
                     onKeyPress={handleKeyPress}
                     disabled={sendingMessage}
                   />
+                  <button
+                    type="button"
+                    className="send-button"
+                    onClick={handleStartCall}
+                    disabled={sendingMessage}
+                    title="Start voice call"
+                  >
+                    <Icon name="mic" size={18} />
+                  </button>
                   <button
                     className="send-button"
                     onClick={sendMessage}

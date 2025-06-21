@@ -14,27 +14,22 @@ const Feed = ({ currentUser }) => {
 
   const fetchPosts = async () => {
     try {
-      // Mock posts with empathy context
+      // Mock posts with diverse topics
       const mockPosts = [
         {
           id: 1,
           user: {
-            id: 1,
-            name: "Maddy Johnson",
-            username: "maddy_j",
-            avatar: "https://i.pravatar.cc/100?img=1"
+            id: 5,
+            name: "Laura Miller",
+            username: "laura_m",
+            avatar: "https://i.pravatar.cc/100?img=5"
           },
-          content: "Grateful for the support from friends during this difficult time. Small gestures mean everything.",
-          timestamp: new Date(Date.now() - 7200000).toISOString(),
-          likes: 12,
-          comments: 3,
+          content: "My golden retriever puppy just discovered his own reflection. The mix of confusion and excitement is the purest thing I've seen all week. #DogsofSpeakeasy #PuppyLife",
+          timestamp: new Date(Date.now() - 3600000).toISOString(),
+          likes: 25,
+          comments: 6,
           isLiked: false,
-          empathyInsight: {
-            type: 'grief_support',
-            message: 'Maddy is processing grief - showing support would be meaningful',
-            context: 'Recent loss of mother',
-            suggestedResponse: 'Consider offering specific help or sharing a fond memory'
-          }
+          empathyInsight: null
         },
         {
           id: 2,
@@ -44,16 +39,16 @@ const Feed = ({ currentUser }) => {
             username: "sarah_w",
             avatar: "https://i.pravatar.cc/100?img=3"
           },
-          content: "Study break well earned! Nature has the best therapy sessions. The autumn colors on the hiking trail were absolutely stunning today.",
+          content: "Just saw 'Challengers' and I'm speechless. The cinematography, the score, the tension... an absolute masterpiece. A must-watch for film lovers! #MovieReview #Challengers",
           timestamp: new Date(Date.now() - 14400000).toISOString(),
-          likes: 8,
-          comments: 2,
+          likes: 18,
+          comments: 7,
           isLiked: true,
           empathyInsight: {
-            type: 'stress_relief',
-            message: 'Sarah is managing medical school stress with outdoor activities',
-            context: 'Balancing intensive studies',
-            suggestedResponse: 'Ask about her favorite hiking spots or offer study support'
+            type: 'shared_interest',
+            message: 'Sarah is excited about movies. This is a great topic to connect on.',
+            context: 'Sharing a positive review',
+            suggestedResponse: 'Ask what other movies she recommends or share your own thoughts on it.'
           }
         },
         {
@@ -64,16 +59,36 @@ const Feed = ({ currentUser }) => {
             username: "alex_c",
             avatar: "https://i.pravatar.cc/100?img=4"
           },
-          content: "Team project deadline coming up. Anyone else feeling the pressure? Looking for some motivation to push through.",
+          content: "The latest funding rounds for xAI are staggering. The AI space is moving at an incredible pace. What are your thoughts on the future of AGI and its ethical implications? #AI #VentureCapital #Tech",
           timestamp: new Date(Date.now() - 21600000).toISOString(),
-          likes: 5,
-          comments: 7,
+          likes: 32,
+          comments: 15,
           isLiked: false,
           empathyInsight: {
-            type: 'stress_support',
-            message: 'Alex is experiencing academic pressure and seeking motivation',
-            context: 'Deadline stress',
-            suggestedResponse: 'Offer encouragement or study group collaboration'
+            type: 'professional_interest',
+            message: 'Alex is interested in deep tech topics.',
+            context: 'Discussing AI advancements',
+            suggestedResponse: 'Share an interesting article or ask a follow-up question about the ethical side.'
+          }
+        },
+        {
+          id: 4,
+          user: {
+            id: 6,
+            name: "David Kim",
+            username: "david_k",
+            avatar: "https://i.pravatar.cc/100?img=6"
+          },
+          content: "The city council vote on public transit funding next week is critical. It's easy to focus on national news, but these local decisions have a huge impact on our daily lives. Make sure you're registered to vote! #LocalPolitics #CivicDuty",
+          timestamp: new Date(Date.now() - 86400000).toISOString(),
+          likes: 9,
+          comments: 4,
+          isLiked: false,
+          empathyInsight: {
+            type: 'civic_engagement',
+            message: 'David is passionate about local politics. Acknowledge his point of view respectfully.',
+            context: 'Encouraging civic participation',
+            suggestedResponse: 'Thank him for the reminder or ask where to find more info on the candidates.'
           }
         }
       ];
@@ -89,11 +104,11 @@ const Feed = ({ currentUser }) => {
   const fetchTrending = () => {
     // Mock trending topics
     const mockTrending = [
-      { topic: '#MentalHealthMatters', posts: '2.4K' },
-      { topic: '#StudySupport', posts: '1.8K' },
-      { topic: '#GriefJourney', posts: '987' },
-      { topic: '#MindfulMoments', posts: '654' },
-      { topic: '#CommunitySupport', posts: '432' }
+      { topic: '#AIRevolution', posts: '15.2K' },
+      { topic: '#MovieNight', posts: '8.1K' },
+      { topic: '#DogsofSpeakeasy', posts: '5.6K' },
+      { topic: '#VCFunding', posts: '3.9K' },
+      { topic: '#LocalPolitics', posts: '1.2K' }
     ];
     setTrending(mockTrending);
   };
@@ -255,7 +270,7 @@ const Feed = ({ currentUser }) => {
         {/* Trending Topics */}
         <div className="widget">
           <div className="widget-header">
-            <h3 className="widget-title">Trending in CareAware</h3>
+            <h3 className="widget-title">Trending in Speakeasy</h3>
           </div>
           {trending.map((item, index) => (
             <div key={index} className="widget-item">

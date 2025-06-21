@@ -1,17 +1,13 @@
 import React, { useState } from 'react';
 import Icon from './Icon';
 
-const Settings = ({ currentUser, darkMode, toggleDarkMode }) => {
-  const [privacySettings, setPrivacySettings] = useState({
-    reddit: true,
-    instagram: true,
-    discord: false,
-    smartwatch: true,
-    biometricData: true,
-    aiAnalysis: true,
-    empathyAlerts: true,
-    conversationSuggestions: true
-  });
+const Settings = () => {
+  const [privacySettings, setPrivacySettings] = useState([
+    { id: 'reddit', label: 'Reddit Integration', description: 'Analyze Reddit posts and comments for emotional context.', enabled: true },
+    { id: 'instagram', label: 'Instagram Integration', description: 'Monitor Instagram stories and posts for mood indicators.', enabled: true },
+    { id: 'discord', label: 'Discord Integration', description: 'Analyze Discord messages and activity patterns.', enabled: false },
+    { id: 'smartwatch', label: 'Smartwatch Integration', description: 'Connect biometric data for enhanced emotional insights.', enabled: true },
+  ]);
 
   const [notifications, setNotifications] = useState({
     empathyAlerts: true,
@@ -23,11 +19,12 @@ const Settings = ({ currentUser, darkMode, toggleDarkMode }) => {
 
   const [savedMessage, setSavedMessage] = useState('');
 
-  const handlePrivacyChange = (setting) => {
-    setPrivacySettings(prev => ({
-      ...prev,
-      [setting]: !prev[setting]
-    }));
+  const handleToggle = (id) => {
+    setPrivacySettings(
+      privacySettings.map(setting =>
+        setting.id === id ? { ...setting, enabled: !setting.enabled } : setting
+      )
+    );
   };
 
   const handleNotificationChange = (setting) => {
