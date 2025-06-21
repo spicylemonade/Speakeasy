@@ -234,11 +234,15 @@ const Messages = ({ currentUser }) => {
   }
 
   return (
-    <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
+    <div className="main-column">
+      <div className="page-header">
+        <h1>Messages</h1>
+      </div>
       <div className="messages-container">
-        {/* Conversations List */}
         <div className="conversations-list">
-          <h3 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Messages</h3>
+          <div className="search-bar" style={{ padding: 'var(--space-md)', borderBottom: '1px solid var(--border-primary)' }}>
+            <input type="text" placeholder="Search conversations..." className="form-input" style={{ width: '100%', borderRadius: 'var(--radius-full)' }} />
+          </div>
           {conversations.map(conversation => (
             <div
               key={conversation.id}
@@ -266,113 +270,96 @@ const Messages = ({ currentUser }) => {
             </div>
           ))}
         </div>
-
-        {/* Chat Container */}
-        {selectedConversation ? (
-          <div className="chat-container">
-            {/* Chat Header */}
-            <div className="chat-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <img
-                  src={selectedConversation.otherUser.avatar}
-                  alt={selectedConversation.otherUser.name}
-                  className="conversation-avatar"
-                />
-                <div>
-                  <h3 style={{ margin: 0 }}>{selectedConversation.otherUser.name}</h3>
-                  <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-                    @{selectedConversation.otherUser.username}
-                  </p>
+        <div className="chat-container">
+          {selectedConversation ? (
+            <>
+              <div className="chat-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
+                  <img
+                    src={selectedConversation.otherUser.avatar}
+                    alt={selectedConversation.otherUser.name}
+                    className="conversation-avatar"
+                  />
+                  <div>
+                    <h4 style={{ margin: 0 }}>{selectedConversation.otherUser.name}</h4>
+                    <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)' }}>
+                      @{selectedConversation.otherUser.username}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-
-            {/* Messages */}
-            <div className="chat-messages">
-              {selectedConversation.messages.map(msg => (
-                <div
-                  key={msg.id}
-                  className={`message ${msg.senderId === currentUser.id ? 'sent' : 'received'}`}
-                >
-                  <div className={`message-bubble ${msg.aiSuggested ? 'ai-suggested' : ''}`}>
-                    {msg.content}
-                    <div style={{ 
-                      fontSize: '0.75rem', 
-                      opacity: 0.7, 
-                      marginTop: '0.25rem' 
-                    }}>
-                      {formatTime(msg.timestamp)}
+              <div className="chat-messages">
+                {selectedConversation.messages.map(msg => (
+                  <div
+                    key={msg.id}
+                    className={`message ${msg.senderId === currentUser.id ? 'sent' : 'received'}`}
+                  >
+                    <div className={`message-bubble ${msg.aiSuggested ? 'ai-suggested' : ''}`}>
+                      {msg.content}
+                      <div style={{ 
+                        fontSize: '0.75rem', 
+                        opacity: 0.7, 
+                        marginTop: '0.25rem' 
+                      }}>
+                        {formatTime(msg.timestamp)}
+                      </div>
                     </div>
                   </div>
+                ))}
+              </div>
+              {aiAnalysis && (
+                <div style={{ padding: '1rem', background: 'var(--bg-secondary)' }}>
+                  {aiAnalysis.alert && (
+                    <div className={`alert alert-${aiAnalysis.alert.severity}`}>
+                      <Icon name="alert" size={16} style={{ marginRight: '0.5rem' }} />
+                      {aiAnalysis.alert.message}
+                    </div>
+                  )}
+                  
+                  {aiAnalysis.biometricAlert && (
+                    <div className={`alert alert-${aiAnalysis.biometricAlert.severity}`}>
+                      <Icon name="watch" size={16} style={{ marginRight: '0.5rem' }} />
+                      {aiAnalysis.biometricAlert.message}
+                    </div>
+                  )}
+
+                  {aiAnalysis.suggestion && (
+                    <div className="alert alert-success">
+                      <Icon name="lightbulb" size={16} style={{ marginRight: '0.5rem' }} />
+                      {aiAnalysis.suggestion.message}
+                    </div>
+                  )}
                 </div>
-              ))}
-            </div>
-
-            {/* AI Analysis Alerts */}
-            {aiAnalysis && (
-              <div style={{ padding: '1rem', background: 'var(--bg-secondary)' }}>
-                {aiAnalysis.alert && (
-                  <div className={`alert alert-${aiAnalysis.alert.severity}`}>
-                    <Icon name="alert" size={16} style={{ marginRight: '0.5rem' }} />
-                    {aiAnalysis.alert.message}
-                  </div>
-                )}
-                
-                {aiAnalysis.biometricAlert && (
-                  <div className={`alert alert-${aiAnalysis.biometricAlert.severity}`}>
-                    <Icon name="watch" size={16} style={{ marginRight: '0.5rem' }} />
-                    {aiAnalysis.biometricAlert.message}
-                  </div>
-                )}
-
-                {aiAnalysis.suggestion && (
-                  <div className="alert alert-success">
-                    <Icon name="lightbulb" size={16} style={{ marginRight: '0.5rem' }} />
-                    {aiAnalysis.suggestion.message}
-                  </div>
-                )}
+              )}
+              <div className="message-input-container">
+                <div className="message-input-wrapper">
+                  <textarea
+                    className="message-input"
+                    placeholder={`Message ${selectedConversation.otherUser.name}...`}
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    disabled={sendingMessage}
+                  />
+                  <button
+                    className="send-button"
+                    onClick={sendMessage}
+                    disabled={!message.trim() || sendingMessage}
+                    title="Send message"
+                  >
+                    <Icon name={sendingMessage ? 'loader' : 'send'} size={18} />
+                  </button>
+                </div>
               </div>
-            )}
-
-            {/* Message Input */}
-            <div className="message-input-container">
-              <div className="message-input-wrapper">
-                <textarea
-                  className="message-input"
-                  placeholder={`Message ${selectedConversation.otherUser.name}...`}
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  disabled={sendingMessage}
-                />
-                <button
-                  className="send-button"
-                  onClick={sendMessage}
-                  disabled={!message.trim() || sendingMessage}
-                  title="Send message"
-                >
-                  <Icon name={sendingMessage ? 'loader' : 'send'} size={18} />
-                </button>
-              </div>
+            </>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', flexDirection: 'column', gap: 'var(--space-md)' }}>
+              <Icon name="message" size={48} />
+              <h2>Select a message</h2>
+              <p>Choose from your existing conversations, start a new one, or just keep swimming.</p>
             </div>
-          </div>
-        ) : (
-          <div className="chat-container">
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center', 
-              height: '100%',
-              flexDirection: 'column',
-              gap: '1rem',
-              color: 'var(--text-muted)'
-            }}>
-              <Icon name="messages" size={64} />
-              <h3>Select a conversation to start messaging</h3>
-              <p>Choose someone from your conversations to begin chatting with AI-powered empathy insights.</p>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

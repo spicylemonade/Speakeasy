@@ -28,7 +28,7 @@ const Profile = ({ currentUser }) => {
         {
           id: 1,
           content: "Grateful for the small moments of joy today. Sometimes it's the little things that matter most.",
-          timestamp: new Date(Date.now() - 86400000).toISOString(),
+          timestamp: 'Yesterday',
           likes: 8,
           comments: 3
         },
@@ -79,222 +79,163 @@ const Profile = ({ currentUser }) => {
   }
 
   return (
-    <div style={{ padding: '2rem', maxWidth: '1000px', margin: '0 auto' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '2rem' }}>
-        {/* Main Profile Content */}
-        <div>
-          {/* Profile Header */}
-          <div className="card" style={{ marginBottom: '2rem' }}>
-            <div style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start' }}>
+    <div className="main-layout">
+      <div className="main-column">
+        <div className="page-header">
+          <h1>{currentUser.name}</h1>
+          <p>{recentPosts.length} posts</p>
+        </div>
+
+        {/* Profile Header */}
+        <div className="card" style={{ border: 'none', boxShadow: 'none' }}>
+          <div style={{ background: 'var(--primary-light)', height: '200px' }}></div>
+          <div className="card-body" style={{ padding: 'var(--space-md) var(--space-lg)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <img
                 src={currentUser.avatar}
                 alt={currentUser.name}
                 style={{
-                  width: '120px',
-                  height: '120px',
+                  width: '134px',
+                  height: '134px',
                   borderRadius: '50%',
-                  objectFit: 'cover',
-                  border: '4px solid var(--primary-orange)'
+                  marginTop: '-75px',
+                  border: '4px solid var(--bg-primary)',
+                  backgroundColor: 'var(--bg-primary)',
                 }}
               />
-              <div style={{ flex: 1 }}>
-                <h1 style={{ margin: '0 0 0.5rem 0' }}>{currentUser.name}</h1>
-                <p style={{ margin: '0 0 1rem 0', color: 'var(--text-muted)', fontSize: '1.1rem' }}>
-                  @{currentUser.username}
-                </p>
-                <p style={{ margin: '0 0 1.5rem 0', fontSize: '1rem', lineHeight: 1.6 }}>
-                  Creating connections through empathy and understanding. Passionate about mental health awareness, photography, and building supportive communities.
-                </p>
-                <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                  <Link to="/settings" className="btn btn-primary">
-                    <Icon name="settings" size={16} />
-                    Edit Profile
-                  </Link>
-                  <Link to="/compose" className="btn btn-outline">
-                    <Icon name="compose" size={16} />
-                    New Post
-                  </Link>
-                </div>
+              <div style={{ display: 'flex', gap: 'var(--space-md)', marginTop: 'var(--space-sm)' }}>
+                <button className="btn btn-outline">
+                  <Icon name="mail" />
+                </button>
+                <button className="btn btn-primary">
+                  <Icon name="plus" /> Follow
+                </button>
               </div>
             </div>
-          </div>
 
-          {/* Stats Grid */}
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', 
-            gap: '1rem',
-            marginBottom: '2rem'
-          }}>
-            <div className="card" style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--primary-orange)' }}>
-                {userStats.postsCount}
-              </div>
-              <div style={{ color: 'var(--text-muted)' }}>Posts</div>
+            <div style={{ marginTop: 'var(--space-md)' }}>
+              <h2 style={{ fontSize: 'var(--font-size-xl)', margin: 0 }}>{currentUser.name}</h2>
+              <p style={{ color: 'var(--text-secondary)', margin: '0 0 var(--space-md) 0' }}>@{currentUser.username}</p>
+              <p>{currentUser.bio}</p>
             </div>
-            <div className="card" style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--empathy-green)' }}>
-                {userStats.empathyScore}%
-              </div>
-              <div style={{ color: 'var(--text-muted)' }}>Empathy Score</div>
-            </div>
-            <div className="card" style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--deep-teal)' }}>
-                {userStats.conversationsStarted}
-              </div>
-              <div style={{ color: 'var(--text-muted)' }}>Conversations</div>
-            </div>
-            <div className="card" style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--golden-yellow)' }}>
-                {userStats.supportGiven}
-              </div>
-              <div style={{ color: 'var(--text-muted)' }}>Support Given</div>
-            </div>
-          </div>
 
-          {/* Recent Posts */}
-          <div className="card">
-            <h3 className="card-title">
-              <Icon name="feed" size={20} />
-              Recent Posts
-            </h3>
-            {recentPosts.map(post => (
-              <div key={post.id} style={{ 
-                padding: '1.5rem 0', 
-                borderBottom: '1px solid var(--border-light)' 
-              }}>
-                <p style={{ margin: '0 0 1rem 0', fontSize: '1rem', lineHeight: 1.6 }}>
-                  {post.content}
-                </p>
-                <div style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'center',
-                  fontSize: '0.9rem',
-                  color: 'var(--text-muted)'
-                }}>
-                  <span>{formatTime(post.timestamp)}</span>
-                  <div style={{ display: 'flex', gap: '1rem' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                      <Icon name="heart" size={14} />
-                      {post.likes}
-                    </span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                      <Icon name="comment" size={14} />
-                      {post.comments}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))}
-            <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
-              <Link to="/feed" className="btn btn-outline">
-                <Icon name="feed" size={16} />
-                View All Posts
-              </Link>
+            <div style={{ display: 'flex', gap: 'var(--space-lg)', color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)', marginTop: 'var(--space-md)' }}>
+              <span><Icon name="calendar" /> Joined {userStats.joinedDate}</span>
+              <span><Icon name="link" /> <a href="#" style={{ color: 'var(--text-link)', textDecoration: 'none' }}>careaware.com</a></span>
             </div>
           </div>
         </div>
 
-        {/* Sidebar */}
-        <div>
-          {/* Profile Insights */}
-          <div className="card" style={{ marginBottom: '1.5rem' }}>
-            <h3 className="card-title">
-              <Icon name="activity" size={20} />
-              Profile Insights
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                padding: '0.75rem',
-                background: 'var(--bg-secondary)',
-                borderRadius: '8px'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <Icon name="calendar" size={16} color="var(--primary-orange)" />
-                  <span>Joined</span>
+        {/* Stats */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: '1px',
+          background: 'var(--border-primary)',
+          border: '1px solid var(--border-primary)',
+          borderRadius: 'var(--radius-lg)',
+          overflow: 'hidden',
+          margin: 'var(--space-lg)'
+        }}>
+          <div style={{ padding: 'var(--space-md)', background: 'var(--bg-primary)', textAlign: 'center' }}>
+            <div style={{ fontWeight: 'bold', fontSize: 'var(--font-size-lg)' }}>{userStats.postsCount}</div>
+            <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>Posts</div>
+          </div>
+          <div style={{ padding: 'var(--space-md)', background: 'var(--bg-primary)', textAlign: 'center' }}>
+            <div style={{ fontWeight: 'bold', fontSize: 'var(--font-size-lg)' }}>{userStats.empathyScore}%</div>
+            <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>Empathy Score</div>
+          </div>
+          <div style={{ padding: 'var(--space-md)', background: 'var(--bg-primary)', textAlign: 'center' }}>
+            <div style={{ fontWeight: 'bold', fontSize: 'var(--font-size-lg)' }}>{userStats.conversationsStarted}</div>
+            <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>Conversations</div>
+          </div>
+          <div style={{ padding: 'var(--space-md)', background: 'var(--bg-primary)', textAlign: 'center' }}>
+            <div style={{ fontWeight: 'bold', fontSize: 'var(--font-size-lg)' }}>{userStats.supportGiven}</div>
+            <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>Support Given</div>
+          </div>
+        </div>
+
+        {/* Recent Posts Section */}
+        <div className="posts-container" style={{ marginTop: 'var(--space-xl)' }}>
+           <h3 style={{ padding: '0 var(--space-lg) var(--space-md)' }}>Recent Posts</h3>
+          {recentPosts.map(post => (
+            <div key={post.id} className="post">
+              <div className="post-header">
+                <img src={currentUser.avatar} alt={currentUser.name} className="post-avatar" />
+                <div className="post-meta">
+                  <span className="post-author">{currentUser.name}</span>
+                  <span className="post-username">{currentUser.username}</span>
+                  <span className="post-time">{formatTime(post.timestamp)}</span>
                 </div>
-                <span style={{ fontWeight: '500' }}>{userStats.joinedDate}</span>
               </div>
-              
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                padding: '0.75rem',
-                background: 'var(--bg-secondary)',
-                borderRadius: '8px'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <Icon name="trendingUp" size={16} color="var(--empathy-green)" />
-                  <span>Active Streak</span>
-                </div>
-                <span style={{ fontWeight: '500' }}>{userStats.activeStreak} days</span>
+              <div className="post-content">
+                <p>{post.content}</p>
               </div>
+              <div className="post-actions">
+                <button className="action-button"><Icon name="comment" /> {post.comments}</button>
+                <button className="action-button"><Icon name="retweet" /> Repost</button>
+                <button className="action-button like-action"><Icon name="heart" /> {post.likes}</button>
+                <button className="action-button"><Icon name="upload" /> Share</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="sidebar-column">
+        {/* Profile Insights */}
+        <div className="widget">
+          <div className="widget-header">
+            <h4 className="widget-title">Profile Insights</h4>
+          </div>
+          <div className="widget-item">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ color: 'var(--text-secondary)' }}>Active Streak</span>
+              <span style={{ fontWeight: 'bold' }}>{userStats.activeStreak} days</span>
             </div>
           </div>
+        </div>
 
-          {/* Interests */}
-          <div className="card" style={{ marginBottom: '1.5rem' }}>
-            <h3 className="card-title">
-              <Icon name="heartbeat" size={20} />
-              Interests & Topics
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {interests.map((interest, index) => (
-                <div key={index} style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  padding: '0.5rem 0',
-                  borderBottom: index < interests.length - 1 ? '1px solid var(--border-light)' : 'none'
-                }}>
-                  <span style={{ fontWeight: '500' }}>{interest.name}</span>
-                  <span style={{ 
-                    fontSize: '0.8rem', 
-                    color: 'var(--text-muted)',
-                    background: 'var(--bg-secondary)',
-                    padding: '0.25rem 0.5rem',
-                    borderRadius: '12px'
-                  }}>
-                    {interest.posts} posts
-                  </span>
-                </div>
-              ))}
-            </div>
+        {/* Interests & Topics */}
+        <div className="widget">
+          <div className="widget-header">
+            <h4 className="widget-title">Interests & Topics</h4>
           </div>
-
-          {/* Empathy Badge */}
-          <div className="card">
-            <h3 className="card-title">
-              <Icon name="empathy" size={20} />
-              Empathy Recognition
-            </h3>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ 
-                width: '80px', 
-                height: '80px', 
-                background: 'linear-gradient(135deg, var(--empathy-green), var(--sage-green))',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 1rem',
-                color: 'white',
-                fontSize: '2rem'
-              }}>
-                <Icon name="empathy" size={32} />
+          {interests.map(interest => (
+            <div key={interest.name} className="widget-item">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>{interest.name}</span>
+                <span style={{ color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)' }}>{interest.posts} posts</span>
               </div>
-              <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--empathy-green)' }}>
-                Compassionate Listener
-              </h4>
-              <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-                Recognized for providing thoughtful, empathetic responses and creating a safe space for others.
-              </p>
             </div>
+          ))}
+        </div>
+
+        {/* Empathy Recognition */}
+        <div className="widget">
+          <div className="widget-header">
+            <h4 className="widget-title">Empathy Recognition</h4>
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ 
+              width: '80px', 
+              height: '80px', 
+              background: 'linear-gradient(135deg, var(--empathy-green), var(--sage-green))',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 1rem',
+              color: 'white',
+              fontSize: '2rem'
+            }}>
+              <Icon name="empathy" size={32} />
+            </div>
+            <h5 style={{ margin: '0 0 0.5rem 0', color: 'var(--empathy-green)' }}>
+              Compassionate Listener
+            </h5>
+            <p style={{ margin: 0, fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>
+              Recognized for providing thoughtful, empathetic responses and creating a safe space for others.
+            </p>
           </div>
         </div>
       </div>
