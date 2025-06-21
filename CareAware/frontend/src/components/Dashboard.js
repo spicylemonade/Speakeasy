@@ -145,7 +145,7 @@ const Dashboard = ({ currentUser }) => {
         </div>
 
         {/* AI Insights */}
-        <div className="card ai-insights">
+        <div className="card ai-insights" style={{ padding: 'var(--space-md)' }}>
           <h3 className="card-title">
             <Icon name="ai" size={20} />
             AI Insights & Alerts
@@ -168,7 +168,7 @@ const Dashboard = ({ currentUser }) => {
         </div>
 
         {/* Recent Activity */}
-        <div className="card">
+        <div className="card" style={{ padding: 'var(--space-md)' }}>
           <h3 className="card-title">
             <Icon name="barChart" size={20} />
             Recent Activity
@@ -185,7 +185,7 @@ const Dashboard = ({ currentUser }) => {
               }}>
                 <Icon name={getActivityIcon(activity.type)} size={18} />
                 <div style={{ flex: 1 }}>
-                  <p style={{ margin: 0, fontWeight: '500' }}>{activity.action}</p>
+                  <p style={{ margin: 0, fontWeight: '500', color: 'var(--text-primary)' }}>{activity.action}</p>
                   <small style={{ color: 'var(--text-muted)' }}>{activity.time}</small>
                 </div>
               </div>
@@ -222,7 +222,7 @@ const Dashboard = ({ currentUser }) => {
                   alignItems: 'center',
                   marginBottom: '0.5rem'
                 }}>
-                  <span>Stress Level:</span>
+                  <span style={{ color: 'var(--text-primary)' }}>Stress Level:</span>
                   <span style={{ 
                     color: getStressLevelColor(smartwatchData.stressLevel),
                     fontWeight: 'bold',
@@ -238,8 +238,8 @@ const Dashboard = ({ currentUser }) => {
                   alignItems: 'center',
                   marginBottom: '0.5rem'
                 }}>
-                  <span>Activity:</span>
-                  <span style={{ textTransform: 'capitalize' }}>{smartwatchData.activity}</span>
+                  <span style={{ color: 'var(--text-primary)' }}>Activity:</span>
+                  <span style={{ textTransform: 'capitalize', color: 'var(--text-primary)' }}>{smartwatchData.activity}</span>
                 </div>
                 
                 <div style={{ 
@@ -247,8 +247,8 @@ const Dashboard = ({ currentUser }) => {
                   justifyContent: 'space-between', 
                   alignItems: 'center'
                 }}>
-                  <span>Mood:</span>
-                  <span style={{ textTransform: 'capitalize' }}>{smartwatchData.mood.replace('_', ' ')}</span>
+                  <span style={{ color: 'var(--text-primary)' }}>Mood:</span>
+                  <span style={{ textTransform: 'capitalize', color: 'var(--text-primary)' }}>{smartwatchData.mood.replace('_', ' ')}</span>
                 </div>
               </div>
               
@@ -273,7 +273,7 @@ const Dashboard = ({ currentUser }) => {
         </div>
 
         {/* Empathy Score */}
-        <div className="card">
+        <div className="card" style={{ padding: 'var(--space-md)' }}>
           <h3 className="card-title">
             <Icon name="empathy" size={20} />
             Empathy Score
@@ -286,8 +286,8 @@ const Dashboard = ({ currentUser }) => {
           </div>
           
           <div style={{ marginTop: '1rem', padding: '1rem', background: 'var(--bg-tertiary)', borderRadius: '8px' }}>
-            <h5 style={{ marginBottom: '0.5rem' }}>Tips for today:</h5>
-            <ul style={{ margin: '0.5rem 0', paddingLeft: '1.2rem', fontSize: '0.9rem' }}>
+            <h5 style={{ marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Tips for today:</h5>
+            <ul style={{ margin: '0.5rem 0', paddingLeft: '1.2rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
               <li>Check in on Maddy - she might need support</li>
               <li>Ask Sarah about her hiking adventures</li>
               <li>Take breaks when your heart rate is elevated</li>
@@ -296,26 +296,26 @@ const Dashboard = ({ currentUser }) => {
         </div>
 
         {/* Quick Stats */}
-        <div className="card">
+        <div className="card" style={{ padding: 'var(--space-md)' }}>
           <h3 className="card-title">
             <Icon name="trendingUp" size={20} />
             Today's Stats
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>Empathy alerts:</span>
+              <span style={{ color: 'var(--text-primary)' }}>Empathy alerts:</span>
               <span style={{ fontWeight: 'bold', color: 'var(--warning)' }}>3</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>Conversations started:</span>
+              <span style={{ color: 'var(--text-primary)' }}>Conversations started:</span>
               <span style={{ fontWeight: 'bold', color: 'var(--success)' }}>2</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>Mindful interactions:</span>
+              <span style={{ color: 'var(--text-primary)' }}>Mindful interactions:</span>
               <span style={{ fontWeight: 'bold', color: 'var(--primary)' }}>8</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>Support given:</span>
+              <span style={{ color: 'var(--text-primary)' }}>Support given:</span>
               <span style={{ fontWeight: 'bold', color: 'var(--info)' }}>5</span>
             </div>
           </div>

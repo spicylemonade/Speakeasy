@@ -114,14 +114,14 @@ const Profile = ({ currentUser }) => {
             </div>
 
             <div style={{ marginTop: 'var(--space-md)' }}>
-              <h2 style={{ fontSize: 'var(--font-size-xl)', margin: 0 }}>{currentUser.name}</h2>
+              <h2 style={{ fontSize: 'var(--font-size-xl)', margin: 0, color: 'var(--text-primary)' }}>{currentUser.name}</h2>
               <p style={{ color: 'var(--text-secondary)', margin: '0 0 var(--space-md) 0' }}>@{currentUser.username}</p>
-              <p>{currentUser.bio}</p>
+              <p style={{ color: 'var(--text-primary)' }}>{currentUser.bio}</p>
             </div>
 
             <div style={{ display: 'flex', gap: 'var(--space-lg)', color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)', marginTop: 'var(--space-md)' }}>
               <span><Icon name="calendar" /> Joined {userStats.joinedDate}</span>
-              <span><Icon name="link" /> <a href="#" style={{ color: 'var(--text-link)', textDecoration: 'none' }}>careaware.com</a></span>
+              <span><Icon name="mapPin" /> <a href="#" style={{ color: 'var(--text-link)', textDecoration: 'none' }}>speakeasy.com</a></span>
             </div>
           </div>
         </div>
@@ -138,26 +138,26 @@ const Profile = ({ currentUser }) => {
           margin: 'var(--space-lg)'
         }}>
           <div style={{ padding: 'var(--space-md)', background: 'var(--bg-primary)', textAlign: 'center' }}>
-            <div style={{ fontWeight: 'bold', fontSize: 'var(--font-size-lg)' }}>{userStats.postsCount}</div>
+            <div style={{ fontWeight: 'bold', fontSize: 'var(--font-size-lg)', color: 'var(--text-primary)' }}>{userStats.postsCount}</div>
             <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>Posts</div>
           </div>
           <div style={{ padding: 'var(--space-md)', background: 'var(--bg-primary)', textAlign: 'center' }}>
-            <div style={{ fontWeight: 'bold', fontSize: 'var(--font-size-lg)' }}>{userStats.empathyScore}%</div>
+            <div style={{ fontWeight: 'bold', fontSize: 'var(--font-size-lg)', color: 'var(--text-primary)' }}>{userStats.empathyScore}%</div>
             <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>Empathy Score</div>
           </div>
           <div style={{ padding: 'var(--space-md)', background: 'var(--bg-primary)', textAlign: 'center' }}>
-            <div style={{ fontWeight: 'bold', fontSize: 'var(--font-size-lg)' }}>{userStats.conversationsStarted}</div>
+            <div style={{ fontWeight: 'bold', fontSize: 'var(--font-size-lg)', color: 'var(--text-primary)' }}>{userStats.conversationsStarted}</div>
             <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>Conversations</div>
           </div>
           <div style={{ padding: 'var(--space-md)', background: 'var(--bg-primary)', textAlign: 'center' }}>
-            <div style={{ fontWeight: 'bold', fontSize: 'var(--font-size-lg)' }}>{userStats.supportGiven}</div>
+            <div style={{ fontWeight: 'bold', fontSize: 'var(--font-size-lg)', color: 'var(--text-primary)' }}>{userStats.supportGiven}</div>
             <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>Support Given</div>
           </div>
         </div>
 
         {/* Recent Posts Section */}
         <div className="posts-container" style={{ marginTop: 'var(--space-xl)' }}>
-           <h3 style={{ padding: '0 var(--space-lg) var(--space-md)' }}>Recent Posts</h3>
+           <h3 style={{ padding: '0 var(--space-lg) var(--space-md)', color: 'var(--text-primary)' }}>Recent Posts</h3>
           {recentPosts.map(post => (
             <div key={post.id} className="post">
               <div className="post-header">
@@ -190,7 +190,7 @@ const Profile = ({ currentUser }) => {
           <div className="widget-item">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ color: 'var(--text-secondary)' }}>Active Streak</span>
-              <span style={{ fontWeight: 'bold' }}>{userStats.activeStreak} days</span>
+              <span style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{userStats.activeStreak} days</span>
             </div>
           </div>
         </div>
@@ -203,7 +203,7 @@ const Profile = ({ currentUser }) => {
           {interests.map(interest => (
             <div key={interest.name} className="widget-item">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span>{interest.name}</span>
+                <span style={{ color: 'var(--text-primary)' }}>{interest.name}</span>
                 <span style={{ color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)' }}>{interest.posts} posts</span>
               </div>
             </div>
@@ -230,7 +230,7 @@ const Profile = ({ currentUser }) => {
             }}>
               <Icon name="empathy" size={32} />
             </div>
-            <h5 style={{ margin: '0 0 0.5rem 0', color: 'var(--empathy-green)' }}>
+            <h5 style={{ margin: '0 0 0.5rem 0', color: 'var(--empathy-primary)' }}>
               Compassionate Listener
             </h5>
             <p style={{ margin: 0, fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>

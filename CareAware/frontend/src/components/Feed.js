@@ -293,21 +293,21 @@ const Feed = ({ currentUser }) => {
           </h3>
           <div className="tips-grid">
             <div className="tip-item">
-              <Icon name="empathy" size={18} color="#8bc34a" />
+              <Icon name="empathy" size={18} />
               <div>
                 <h5>Practice Empathy</h5>
                 <p>Consider what others might be going through before responding</p>
               </div>
             </div>
             <div className="tip-item">
-              <Icon name="support" size={18} color="#00ba7c" />
+              <Icon name="support" size={18} />
               <div>
                 <h5>Offer Support</h5>
                 <p>Sometimes just letting someone know you care makes all the difference</p>
               </div>
             </div>
             <div className="tip-item">
-              <Icon name="lightbulb" size={18} color="#f4b942" />
+              <Icon name="lightbulb" size={18} />
               <div>
                 <h5>Ask Before Advising</h5>
                 <p>Check if someone wants advice or just needs someone to listen</p>

@@ -243,7 +243,7 @@ const Messages = ({ currentUser }) => {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', width: '100%' }}>
       <div className="page-header">
         <h1>Messages</h1>
       </div>

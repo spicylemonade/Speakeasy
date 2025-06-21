@@ -853,9 +853,9 @@ h6 { font-size: var(--font-size-sm); }
   color: var(--text-primary);
   transition: all var(--transition-fast);
   resize: none;
-  min-height: 40px;
+  min-height: 80px;
   line-height: 1.4;
-  max-height: 120px;
+  max-height: 160px;
   overflow-y: auto;
 }
 
@@ -1464,5 +1464,33 @@ h6 { font-size: var(--font-size-sm); }
   .empathy-insight {
     margin-left: 0;
     max-width: 100%;
+  }
+}
+
+.widget .card-body,
+.sidebar .card .card-body {
+  padding: var(--space-md);
+}
+
+.tip-item .icon,
+.privacy-toggle .icon {
+  color: var(--text-secondary);
+}
+
+.dark .tip-item .icon,
+.dark .privacy-toggle .icon {
+  color: var(--text-primary);
+}
+
+.dark .card .icon {
+  color: var(--text-primary);
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(10px);
+  }
+  to {
+    transform: translateY(0);
   }
 } 
