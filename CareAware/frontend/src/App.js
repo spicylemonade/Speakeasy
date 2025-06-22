@@ -12,14 +12,13 @@ import Profile from './components/Profile';
 import Settings from './components/Settings';
 import ComposePost from './components/ComposePost';
 import CallPage from './components/CallPage';
+import UserSwitcher from './components/UserSwitcher';
 
 function App() {
   const [darkMode, setDarkMode] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  
-  // Hardcoded current user ID
-  const currentUserId = 1; // Geby
+  const [currentUserId, setCurrentUserId] = useState(1); // Default to Geby
 
   useEffect(() => {
     const fetchCurrentUser = async () => {
@@ -32,7 +31,6 @@ function App() {
         setCurrentUser(userData);
       } catch (error) {
         console.error("Error fetching current user:", error);
-        // Handle error, maybe show an error message
       } finally {
         setLoading(false);
       }
@@ -43,6 +41,11 @@ function App() {
 
   const toggleDarkMode = () => {
     setDarkMode(!darkMode);
+  };
+
+  const handleUserChange = (userId) => {
+    setLoading(true);
+    setCurrentUserId(userId);
   };
 
   if (loading) {
@@ -63,6 +66,13 @@ function App() {
           toggleDarkMode={toggleDarkMode}
         />
         
+        <div className="user-switcher-container">
+          <UserSwitcher 
+            currentUserId={currentUserId}
+            onUserChange={handleUserChange}
+          />
+        </div>
+        
         <div className="app-content">
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -79,7 +89,7 @@ function App() {
               />
             } />
             <Route path="/compose" element={<ComposePost currentUser={currentUser} />} />
-            <Route path="/call/:userId" element={<CallPage currentUser={currentUser} />} />
+            <Route path="/call/:userId" element={<CallPage />} />
           </Routes>
         </div>
     </div>

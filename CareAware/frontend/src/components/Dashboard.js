@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Icon from './Icon';
+import { getApiUrl } from '../config';
 
 const Dashboard = ({ currentUser }) => {
   const [insights, setInsights] = useState([]);
@@ -13,7 +14,7 @@ const Dashboard = ({ currentUser }) => {
     const interval = setInterval(fetchSmartwatchData, 5000); // Update every 5 seconds
     
     return () => clearInterval(interval);
-  }, []);
+  }, [currentUser]);
 
   const fetchDashboardData = async () => {
     try {
@@ -62,20 +63,44 @@ const Dashboard = ({ currentUser }) => {
   };
 
   const fetchSmartwatchData = async () => {
+    if (!currentUser) return;
+    
     try {
-      // Simulate smartwatch data
-      const mockData = {
-        heartRate: Math.floor(Math.random() * 30) + 70,
-        stressLevel: Math.random() > 0.7 ? 'high' : Math.random() > 0.4 ? 'medium' : 'low',
-        activity: ['sitting', 'walking', 'standing'][Math.floor(Math.random() * 3)],
-        timestamp: new Date().toISOString(),
-        batteryLevel: Math.floor(Math.random() * 100),
-        mood: ['calm', 'elevated_stress', 'anxious', 'happy'][Math.floor(Math.random() * 4)]
+      const response = await fetch(getApiUrl(`/api/smartwatch/${currentUser.id}`));
+      if (!response.ok) {
+        throw new Error('Failed to fetch smartwatch data');
+      }
+      const data = await response.json();
+      
+      // Format the data for the UI
+      const formattedData = {
+        heartRate: data.heartRate,
+        stressLevel: data.stressLevel,
+        activity: data.activity,
+        timestamp: data.timestamp,
+        batteryLevel: data.batteryLevel,
+        mood: data.stressLevel === 'high' ? 'stressed' : 
+              data.stressLevel === 'medium' ? 'focused' : 'calm',
+        temperature: data.temperature,
+        humidity: data.humidity,
+        isRealData: data.isRealData || false,
+        alerts: data.alerts || []
       };
       
-      setSmartwatchData(mockData);
+      setSmartwatchData(formattedData);
     } catch (error) {
       console.error('Error fetching smartwatch data:', error);
+      // Fallback to basic mock data on error
+      setSmartwatchData({
+        heartRate: 75,
+        stressLevel: 'low',
+        activity: 'sitting',
+        timestamp: new Date().toISOString(),
+        batteryLevel: 85,
+        mood: 'calm',
+        isRealData: false,
+        alerts: []
+      });
     }
   };
 
@@ -211,9 +236,23 @@ const Dashboard = ({ currentUser }) => {
                 </div>
                 <div className="biometric-item">
                   <div className="biometric-value">{smartwatchData.batteryLevel}%</div>
-                  <div className="biometric-label">Battery</div>
+                  <div className="biometric-label">BATTERY</div>
                 </div>
               </div>
+              
+              {/* Additional biometric data if available */}
+              {smartwatchData.temperature && smartwatchData.humidity && (
+                <div className="biometric-grid" style={{ marginTop: '1rem' }}>
+                  <div className="biometric-item">
+                    <div className="biometric-value">{smartwatchData.temperature.toFixed(1)}°C</div>
+                    <div className="biometric-label">TEMP</div>
+                  </div>
+                  <div className="biometric-item">
+                    <div className="biometric-value">{smartwatchData.humidity}%</div>
+                    <div className="biometric-label">HUMIDITY</div>
+                  </div>
+                </div>
+              )}
               
               <div style={{ marginTop: '1rem' }}>
                 <div style={{ 
@@ -252,17 +291,42 @@ const Dashboard = ({ currentUser }) => {
                 </div>
               </div>
               
+              {/* Health alerts if available */}
+              {smartwatchData.alerts && smartwatchData.alerts.length > 0 && (
+                <div style={{ marginTop: '1rem' }}>
+                  {smartwatchData.alerts.map((alert, index) => (
+                    <div key={index} className={`alert alert-${alert.severity}`} style={{ marginBottom: '0.5rem', fontSize: '0.85rem' }}>
+                      <Icon name="alert" size={14} style={{ marginRight: '0.5rem' }} />
+                      {alert.message}
+                    </div>
+                  ))}
+                </div>
+              )}
+              
               <div style={{ 
                 fontSize: '0.8rem', 
                 color: 'var(--text-muted)', 
                 textAlign: 'center', 
                 marginTop: '1rem',
                 padding: '0.5rem',
-                background: 'var(--bg-tertiary)',
-                borderRadius: '8px'
+                background: smartwatchData.isRealData ? 'var(--empathy-tertiary)' : 'var(--bg-tertiary)',
+                borderRadius: '8px',
+                border: smartwatchData.isRealData ? '1px solid var(--empathy-primary)' : 'none'
               }}>
-                <Icon name="camera" size={14} style={{ marginRight: '0.5rem' }} />
-                Camera capture every 5s
+                <Icon name={smartwatchData.isRealData ? "watch" : "camera"} size={14} style={{ marginRight: '0.5rem' }} />
+                {smartwatchData.isRealData ? (
+                  <>
+                    <strong style={{ color: 'var(--empathy-primary)' }}>🔴 LIVE GPIO DATA</strong>
+                    <br />
+                    Real-time from COM5 sensor
+                  </>
+                ) : (
+                  <>
+                    Camera capture every 5s
+                    <br />
+                    Simulated data
+                  </>
+                )}
                 <br />
                 Last updated: {new Date(smartwatchData.timestamp).toLocaleTimeString()}
               </div>

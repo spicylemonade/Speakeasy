@@ -3,69 +3,12 @@ import json
 import time
 import sys
 import os
-# import requests
-# from transformers import BlipProcessor, BlipForConditionalGeneration
-# from PIL import Image
-# import torch
 
 DEFAULT_PROFILE_DIR = 'Default'
-
-# Load BLIP model and processor for image captioning
-# print("Loading BLIP model for image captioning...")
-# try:
-#     processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
-#     model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-base")
-#     print("[SUCCESS] BLIP model loaded successfully")
-# except Exception as e:
-#     print(f"[WARNING] Could not load BLIP model: {e}")
-#     processor = None
-#     model = None
-
-# def download_image(url, save_path):
-#     """Download an image from URL and save it locally"""
-#     try:
-#         headers = {
-#             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-#         }
-#         r = requests.get(url, headers=headers, timeout=10)
-#         r.raise_for_status()
-#         with open(save_path, 'wb') as f:
-#             f.write(r.content)
-#         return True
-#     except Exception as e:
-#         print(f"Failed to download image {url}: {e}")
-#         return False
-
-# def generate_caption(image_path):
-#     """Generate a caption for an image using BLIP model"""
-#     if not processor or not model:
-#         return "Image captioning not available"
-    
-#     try:
-#         raw_image = Image.open(image_path).convert('RGB')
-#         inputs = processor(raw_image, return_tensors="pt")
-#         out = model.generate(**inputs, max_length=50)
-#         caption = processor.decode(out[0], skip_special_tokens=True)
-#         return caption
-#     except Exception as e:
-#         print(f"Failed to generate caption for {image_path}: {e}")
-#         return "Caption generation failed"
 
 def scrape_all_tweets(username, cdp_port=9222, scroll_delay=1, max_idle_scrolls=5):
     """
     Scrape tweets by connecting to an existing Chrome browser session using CDP.
-    
-    To use this method:
-    1. Start Chrome with debug mode: 
-       "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222
-    2. Navigate to X.com and log in manually
-    3. Run this script
-    
-    Args:
-        username: X/Twitter username to scrape
-        cdp_port: Chrome DevTools Protocol port (default 9222)
-        scroll_delay: Delay between scrolls in seconds
-        max_idle_scrolls: Maximum scrolls without finding new tweets
     """
     final_data = {
         "twitter": {
@@ -81,10 +24,6 @@ def scrape_all_tweets(username, cdp_port=9222, scroll_delay=1, max_idle_scrolls=
     }
     data = final_data["twitter"]
     seen_texts = set()
-
-    # Create directory for downloaded images (disabled for now)
-    # image_dir = f"{username}_images"
-    # os.makedirs(image_dir, exist_ok=True)
 
     with sync_playwright() as playwright:
         try:
@@ -130,13 +69,13 @@ def scrape_all_tweets(username, cdp_port=9222, scroll_delay=1, max_idle_scrolls=
             
             # Check for authentication by looking for login-related elements
             print("[INFO] Checking authentication status...")
-            page.wait_for_timeout(3000)  # Wait for page to load
+            page.wait_for_timeout(3000)
             
             # Check if we're on a login page or if login is required
             login_selectors = [
-                'a[href="/i/flow/login"]',  # Login link
-                'div[data-testid="loginButton"]',  # Login button
-                'input[name="text"]',  # Username input on login page
+                'a[href="/i/flow/login"]',
+                'div[data-testid="loginButton"]',
+                'input[name="text"]',
             ]
             
             is_logged_out = False
@@ -223,16 +162,16 @@ def scrape_all_tweets(username, cdp_port=9222, scroll_delay=1, max_idle_scrolls=
                     if text in seen_texts or not text:
                         continue
 
-                    # Add tweet with just text (image processing disabled)
+                    # Add tweet with just text
                     tweet_data = {
                         "text": text,
-                        "images": [],  # No image processing for now
+                        "images": [],
                         "image_count": 0
                     }
                     
                     data["tweets"].append(tweet_data)
-                        seen_texts.add(text)
-                        new_count += 1
+                    seen_texts.add(text)
+                    new_count += 1
                     tweet_count += 1
 
                 except Exception as e:
@@ -250,8 +189,6 @@ def scrape_all_tweets(username, cdp_port=9222, scroll_delay=1, max_idle_scrolls=
             page.wait_for_timeout(scroll_delay * 1000)
 
         print(f"[SUCCESS] Finished scrolling. Total tweets collected: {len(data['tweets'])}")
-        
-        # Note: We don't close the browser since we're connecting to an existing session
         print("[INFO] Keeping browser session open (connected via CDP)")
 
     # Save to file
@@ -268,9 +205,9 @@ def start_chrome_debug():
     import platform
     
     if platform.system() == "Windows":
-        chrome_path = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+        chrome_path = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
         if not os.path.exists(chrome_path):
-            chrome_path = "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe"
+            chrome_path = r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"
         
         if os.path.exists(chrome_path):
             print(f"[INFO] Starting Chrome in debug mode...")
@@ -286,7 +223,7 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         user = sys.argv[1]
     else:
-    user = input("Provide an X (Twitter) username: ").strip()
+        user = input("Provide an X (Twitter) username: ").strip()
 
     # Check if user wants to start Chrome in debug mode
     if len(sys.argv) > 2 and sys.argv[2] == "--start-chrome":
@@ -296,4 +233,4 @@ if __name__ == "__main__":
 
     cdp_port = int(sys.argv[2]) if len(sys.argv) > 2 and sys.argv[2].isdigit() else 9222
 
-    scrape_all_tweets(user, cdp_port)
+    scrape_all_tweets(user, cdp_port) 

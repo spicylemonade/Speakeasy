@@ -3,43 +3,19 @@ const cors = require('cors');
 const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
-const http = require('http');
-const socketIo = require('socket.io');
-const multer = require('multer');
 const app = express();
-const server = http.createServer(app);
-const io = socketIo(server, {
-  cors: {
-    origin: "http://localhost:3000",
-    methods: ["GET", "POST"]
-  }
-});
 const PORT = process.env.PORT || 5000;
 const axios = require('axios');
+const BiometricMonitor = require('./biometric-monitor');
 
-// Configure multer for audio file uploads
-const upload = multer({
-  dest: 'uploads/',
-  limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB limit
-  },
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('audio/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only audio files are allowed'));
-    }
-  }
-});
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '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';
 
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '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';
+// Initialize Geby's biometric monitor
+const gebyMonitor = new BiometricMonitor();
 
 // Middleware
 app.use(cors());
 app.use(express.json());
-
-// Store active calls
-const activeCalls = new Map();
 
 // Serve static files from pfps directory
 app.use('/pfps', express.static(path.join(__dirname, 'pfps')));
@@ -409,26 +385,19 @@ app.post('/api/analyze-message', async (req, res) => {
       .slice(0, 3) // Latest 3 posts
       .map(p => `"${p.content}"`);
 
-    // Check if recipient has social media integration and scrape if needed
+    // Use existing scraped data if available, no new scraping
     let scrapedData = [];
-    if (recipient.integrationSettings && recipient.integrationSettings.twitter && recipient.integrationSettings.twitter.username) {
-        try {
-            const scrapeResponse = await axios.post(`http://localhost:5000/api/scrape/${recipient.username}`);
-            if (scrapeResponse.data && scrapeResponse.data.user && scrapeResponse.data.user.socialData) {
-                scrapedData = scrapeResponse.data.user.socialData.twitter_scraped || [];
-            }
-        } catch (scrapeError) {
-            console.error('Scraping failed during analysis:', scrapeError.message);
-        }
+    if (recipient.socialData && recipient.socialData.twitter_scraped) {
+        scrapedData = recipient.socialData.twitter_scraped.tweets || [];
     }
 
     // Combine all recipient data
     const allRecipientData = [
       ...recipientPosts,
-      ...(scrapedData || []).map(post => `"${post.content}" (from Twitter)`)
+      ...(scrapedData || []).map(post => `"${post.text}" (from Twitter)`)
     ].join('; ');
 
-    const systemPrompt = `You are an empathetic AI assistant for CareAware, a mental health-aware social network. Your job is to analyze a user's message to a recipient and the recipient's recent activity to provide helpful feedback.
+    const systemPrompt = `You are an deadpan but humorous AI assistant for CareAware, a mental health-aware social network. Your job is to analyze a user's message to a recipient and the recipient's recent activity to provide helpful feedback.
 
 CRITICAL: You must respond with valid JSON in this exact format:
 {
@@ -444,6 +413,7 @@ Rules:
 - If the user's message seems to ask for help or information, provide the answer in the "suggestion" field.
 - Keep suggestions warm, natural, and constructive.
 - Respond ONLY with the JSON object, no other text or explanations.
+- be helpful but be funny in a lowkey way, maybe some sarcasm(to the user) like your respond should be the quote they should say and then after *say this unless you want her to block you* etc idk sarcasm
 
 Recipient's name: ${recipient.name}
 Recipient's recent activity: ${allRecipientData || 'No recent activity found.'}
@@ -575,7 +545,7 @@ app.post('/api/messages', (req, res) => {
   res.status(201).json(newMessage);
 });
 
-// Mock smartwatch data endpoint
+// Smartwatch data endpoint - real data for Geby, mock for others
 app.get('/api/smartwatch/:userId', (req, res) => {
   const userId = parseInt(req.params.userId);
   const user = users.find(u => u.id === userId);
@@ -584,389 +554,110 @@ app.get('/api/smartwatch/:userId', (req, res) => {
     return res.status(404).json({ error: 'User not found' });
   }
 
-  // Simulate smartwatch data
-  const mockData = {
-    heartRate: Math.floor(Math.random() * 30) + 70, // 70-100 BPM
-    stressLevel: Math.random() > 0.7 ? 'high' : Math.random() > 0.4 ? 'medium' : 'low',
-    activity: ['sitting', 'walking', 'standing'][Math.floor(Math.random() * 3)],
-    timestamp: new Date().toISOString(),
-    batteryLevel: Math.floor(Math.random() * 100),
-    screenshot: `data:image/png;base64,mockbase64data${Date.now()}`
-  };
-
-  res.json(mockData);
-});
-
-// Speech-to-text endpoint
-app.post('/api/speech-to-text', upload.single('audio'), (req, res) => {
-  console.log('🎤 [SPEECH-TO-TEXT] Request received');
-  
-  if (!req.file) {
-    console.log('❌ [SPEECH-TO-TEXT] No audio file provided');
-    return res.status(400).json({ error: 'No audio file provided' });
-  }
-
-  const audioPath = req.file.path;
-  const audioSize = req.file.size;
-  const pythonArgs = [path.join(__dirname, 'speech_to_text.py'), audioPath];
-
-  console.log(`🎤 [SPEECH-TO-TEXT] Processing audio file: ${audioPath} (${audioSize} bytes)`);
-
-  const pythonProcess = spawn('python', pythonArgs);
-  let result = '';
-  let error = '';
-
-  pythonProcess.stdout.on('data', (data) => {
-    result += data.toString();
-    console.log(`🎤 [SPEECH-TO-TEXT] Python stdout: ${data.toString().trim()}`);
-  });
-
-  pythonProcess.stderr.on('data', (data) => {
-    error += data.toString();
-    console.log(`🎤 [SPEECH-TO-TEXT] Python stderr: ${data.toString().trim()}`);
-  });
-
-  pythonProcess.on('close', (code) => {
-    console.log(`🎤 [SPEECH-TO-TEXT] Python process exited with code: ${code}`);
-    
-    // Clean up uploaded file
-    fs.unlink(audioPath, (unlinkErr) => {
-      if (unlinkErr) console.error('❌ [SPEECH-TO-TEXT] Error deleting audio file:', unlinkErr);
-      else console.log(`🗑️ [SPEECH-TO-TEXT] Cleaned up audio file: ${audioPath}`);
-    });
-
-    if (code !== 0) {
-      console.log(`❌ [SPEECH-TO-TEXT] Speech recognition failed with error: ${error}`);
-      return res.status(500).json({ 
-        error: 'Speech recognition failed', 
-        details: error 
-      });
-    }
-
-    try {
-      const transcriptionResult = JSON.parse(result);
-      console.log(`✅ [SPEECH-TO-TEXT] Success:`, transcriptionResult);
-      res.json(transcriptionResult);
-    } catch (parseError) {
-      console.log(`❌ [SPEECH-TO-TEXT] Failed to parse result: ${parseError.message}`);
-      res.status(500).json({ error: 'Failed to parse transcription result' });
-    }
-  });
-});
-
-// Text-to-speech endpoint
-app.post('/api/text-to-speech', (req, res) => {
-  const { text, voice = 'lily' } = req.body;
-  
-  console.log(`🔊 [TEXT-TO-SPEECH] Request received for text: "${text?.substring(0, 100)}..." with voice: ${voice}`);
-
-  if (!text || !text.trim()) {
-    console.log('❌ [TEXT-TO-SPEECH] No text provided');
-    return res.status(400).json({ error: 'No text provided' });
-  }
-
-  // Create temporary JSON input file
-  const inputPath = path.join(__dirname, `tts_input_${Date.now()}.json`);
-  const outputPath = path.join(__dirname, `tts_output_${Date.now()}.wav`);
-
-  console.log(`🔊 [TEXT-TO-SPEECH] Creating temp files: ${inputPath} -> ${outputPath}`);
-
-  fs.writeFileSync(inputPath, JSON.stringify({ text }));
-
-  const pythonArgs = [path.join(__dirname, 'text_to_speech.py'), inputPath, outputPath, voice];
-
-  console.log(`🔊 [TEXT-TO-SPEECH] Starting Python process with args:`, pythonArgs);
-
-  const pythonProcess = spawn('python', pythonArgs);
-  let result = '';
-  let error = '';
-
-  pythonProcess.stdout.on('data', (data) => {
-    result += data.toString();
-    console.log(`🔊 [TEXT-TO-SPEECH] Python stdout: ${data.toString().trim()}`);
-  });
-
-  pythonProcess.stderr.on('data', (data) => {
-    error += data.toString();
-    console.log(`🔊 [TEXT-TO-SPEECH] Python stderr: ${data.toString().trim()}`);
-  });
-
-  pythonProcess.on('close', (code) => {
-    console.log(`🔊 [TEXT-TO-SPEECH] Python process exited with code: ${code}`);
-    
-    // Clean up input file
-    fs.unlink(inputPath, (unlinkErr) => {
-      if (unlinkErr) console.error('❌ [TEXT-TO-SPEECH] Error deleting input file:', unlinkErr);
-      else console.log(`🗑️ [TEXT-TO-SPEECH] Cleaned up input file: ${inputPath}`);
-    });
-
-    if (code !== 0) {
-      console.log(`❌ [TEXT-TO-SPEECH] TTS failed with error: ${error}`);
-      return res.status(500).json({ 
-        error: 'Text-to-speech failed', 
-        details: error 
-      });
-    }
-
-    try {
-      const ttsResult = JSON.parse(result);
-      console.log(`🔊 [TEXT-TO-SPEECH] Python result:`, ttsResult);
-      
-      if (ttsResult.success) {
-        console.log(`🔊 [TEXT-TO-SPEECH] Reading audio file: ${outputPath}`);
-        // Read the audio file and send as base64
-        fs.readFile(outputPath, (readErr, audioData) => {
-          if (readErr) {
-            console.log(`❌ [TEXT-TO-SPEECH] Failed to read audio file: ${readErr.message}`);
-            return res.status(500).json({ error: 'Failed to read audio file' });
-          }
-
-          const audioBase64 = audioData.toString('base64');
-          console.log(`✅ [TEXT-TO-SPEECH] Audio file read successfully (${audioData.length} bytes)`);
-          
-          // Clean up output file
-          fs.unlink(outputPath, (unlinkErr) => {
-            if (unlinkErr) console.error('❌ [TEXT-TO-SPEECH] Error deleting output file:', unlinkErr);
-            else console.log(`🗑️ [TEXT-TO-SPEECH] Cleaned up output file: ${outputPath}`);
-          });
-
-          res.json({
-            ...ttsResult,
-            audioData: `data:audio/wav;base64,${audioBase64}`
-          });
-        });
-      } else {
-        console.log(`❌ [TEXT-TO-SPEECH] TTS was not successful:`, ttsResult);
-        res.json(ttsResult);
-      }
-    } catch (parseError) {
-      console.log(`❌ [TEXT-TO-SPEECH] Failed to parse result: ${parseError.message}`);
-      res.status(500).json({ error: 'Failed to parse TTS result' });
-    }
-  });
-});
-
-// Call speech analysis endpoint
-app.post('/api/analyze-call-speech', async (req, res) => {
-  const { callerId, recipientId, transcription, biometricData } = req.body;
-  
-  console.log(`🧠 [AI-ANALYSIS] Request received:`);
-  console.log(`   Caller ID: ${callerId}`);
-  console.log(`   Recipient ID: ${recipientId}`);
-  console.log(`   Transcription: "${transcription}"`);
-  console.log(`   Biometric Data:`, biometricData);
-
-  try {
-    // Get both users' data
-    const caller = users.find(u => u.id === parseInt(callerId));
-    const recipient = users.find(u => u.id === parseInt(recipientId));
-
-    if (!caller || !recipient) {
-      console.log(`❌ [AI-ANALYSIS] User not found - Caller: ${caller?.name}, Recipient: ${recipient?.name}`);
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    console.log(`🧠 [AI-ANALYSIS] Found users - Caller: ${caller.name}, Recipient: ${recipient.name}`);
-
-    // Get recipient's recent posts and activity
-    const recipientPosts = posts.filter(p => p.userId === parseInt(recipientId))
-      .slice(0, 3)
-      .map(p => `"${p.content}"`);
-
-    // Combine recipient data
-    const recipientContext = [
-      `Recent mood: ${recipient.recentActivity?.mood || 'unknown'}`,
-      `Recent heart rate: ${recipient.recentActivity?.heartRate || 'unknown'} BPM`,
-      `Recent posts: ${recipientPosts.join('; ')}`,
-      `Bio: ${recipient.bio}`,
-      `Interests: ${recipient.interests?.join(', ') || 'none listed'}`
-    ].join('\n');
-
-    console.log(`🧠 [AI-ANALYSIS] Recipient context:`, recipientContext);
-
-    // Add biometric context if provided
-    let biometricContext = '';
-    if (biometricData) {
-      biometricContext = `Current biometric data: Heart rate: ${biometricData.heartRate || 'unknown'} BPM, Stress level: ${biometricData.stressLevel || 'unknown'}, Activity: ${biometricData.activity || 'unknown'}`;
-      console.log(`🧠 [AI-ANALYSIS] Biometric context:`, biometricContext);
-    }
-
-    const systemPrompt = `You are an empathetic AI assistant for CareAware, a mental health-aware social network. You're analyzing speech during a live call to provide real-time guidance.
-
-CRITICAL: You must respond with valid JSON in this exact format:
-{
-  "alert": "Alert message if the speech might be insensitive or inappropriate",
-  "suggestion": "Suggested response or conversation direction",
-  "biometricAlert": "Alert about concerning biometric data",
-  "shouldRespond": true/false
-}
-
-Rules:
-- If the transcribed speech seems insensitive given the recipient's context, provide an "alert"
-- Always provide a "suggestion" for how to continue the conversation empathetically
-- If biometric data shows stress/concern, provide a "biometricAlert"
-- Set "shouldRespond" to true if immediate guidance is needed, false for normal conversation flow
-- Keep responses concise and actionable for real-time use
-- Focus on mental health awareness and empathy
-
-Caller: ${caller.name}
-Recipient context: ${recipientContext}
-${biometricContext}
-Transcribed speech: "${transcription}"`;
-
-    console.log(`🧠 [AI-ANALYSIS] Sending request to OpenRouter...`);
-
-    const requestBody = {
-      model: "google/gemma-2-9b-it",
-      messages: [
-        {
-          role: "user",
-          content: systemPrompt
-        }
-      ],
-      max_tokens: 300,
-      temperature: 0.7
+  // Use real data for Geby if monitor is connected
+  if (userId === 1 && gebyMonitor.isActive()) {
+    const realData = gebyMonitor.getLatestData();
+    const smartwatchData = {
+      heartRate: realData.heartRate,
+      stressLevel: realData.stressLevel,
+      activity: realData.activity,
+      temperature: realData.temperature,
+      humidity: realData.humidity,
+      timestamp: realData.timestamp,
+      batteryLevel: Math.floor(Math.random() * 20) + 80, // Assume good battery
+      screenshot: `data:image/png;base64,mockbase64data${Date.now()}`,
+      isRealData: true,
+      alerts: realData.alerts || []
     };
-
-    const response = await axios.post('https://openrouter.ai/api/v1/chat/completions', requestBody, {
-      headers: {
-        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': 'http://localhost:3000',
-        'X-Title': 'CareAware'
-      }
-    });
-
-    const llmResponse = response.data.choices[0].message.content.trim();
-    console.log(`🧠 [AI-ANALYSIS] LLM raw response:`, llmResponse);
     
-    let parsedResponse;
-    try {
-      parsedResponse = JSON.parse(llmResponse);
-      console.log(`✅ [AI-ANALYSIS] Parsed response:`, parsedResponse);
-    } catch (parseError) {
-      console.log(`❌ [AI-ANALYSIS] Failed to parse LLM response: ${parseError.message}`);
-      parsedResponse = { 
-        alert: null, 
-        suggestion: "Continue the conversation with empathy and understanding.",
-        biometricAlert: null,
-        shouldRespond: false
-      };
-    }
+    console.log(`[Server] 📱 Serving real biometric data for Geby: ${realData.heartRate} BPM`);
+    res.json(smartwatchData);
+  } else {
+    // Mock data for other users or when Geby's monitor is offline
+    const mockData = {
+      heartRate: Math.floor(Math.random() * 30) + 70, // 70-100 BPM
+      stressLevel: Math.random() > 0.7 ? 'high' : Math.random() > 0.4 ? 'medium' : 'low',
+      activity: ['sitting', 'walking', 'standing'][Math.floor(Math.random() * 3)],
+      temperature: Math.random() * 2 + 36.5, // 36.5-38.5°C
+      humidity: Math.floor(Math.random() * 20) + 40, // 40-60%
+      timestamp: new Date().toISOString(),
+      batteryLevel: Math.floor(Math.random() * 100),
+      screenshot: `data:image/png;base64,mockbase64data${Date.now()}`,
+      isRealData: false,
+      alerts: []
+    };
+    
+    res.json(mockData);
+  }
+});
 
-    console.log(`🧠 [AI-ANALYSIS] Sending final response:`, parsedResponse);
-    res.json(parsedResponse);
+// Biometric monitor status endpoint
+app.get('/api/biometric-status', (req, res) => {
+  res.json({
+    isConnected: gebyMonitor.isActive(),
+    userId: 1, // Geby
+    lastUpdate: gebyMonitor.getLatestData().timestamp,
+    connectionStatus: gebyMonitor.isActive() ? 'Connected to COM5' : 'Disconnected'
+  });
+});
 
-  } catch (error) {
-    console.error('❌ [AI-ANALYSIS] Error in call speech analysis:', error.message);
-    console.error('❌ [AI-ANALYSIS] Full error:', error);
-    res.status(500).json({
-      alert: null,
-      suggestion: "Continue the conversation with empathy and understanding.",
-      biometricAlert: null,
-      shouldRespond: false
+// Real-time biometric alerts endpoint
+app.get('/api/biometric-alerts/:userId', (req, res) => {
+  const userId = parseInt(req.params.userId);
+  
+  if (userId === 1 && gebyMonitor.isActive()) {
+    const data = gebyMonitor.getLatestData();
+    res.json({
+      alerts: data.alerts || [],
+      vitals: {
+        heartRate: data.heartRate,
+        temperature: data.temperature,
+        stressLevel: data.stressLevel,
+        activity: data.activity
+      },
+      timestamp: data.timestamp
+    });
+  } else {
+    res.json({
+      alerts: [],
+      vitals: null,
+      timestamp: new Date().toISOString()
     });
   }
 });
 
-// Socket.IO for real-time call communication
-io.on('connection', (socket) => {
-  console.log('🔌 [SOCKET] User connected:', socket.id);
-
-  // Join a call room
-  socket.on('join-call', (data) => {
-    const { callerId, recipientId, callId } = data;
-    const roomId = `call-${callId}`;
-    
-    socket.join(roomId);
-    
-    // Store call info
-    activeCalls.set(socket.id, {
-      callerId,
-      recipientId,
-      callId,
-      roomId,
-      joinedAt: new Date()
-    });
-
-    console.log(`🔌 [SOCKET] User ${callerId} joined call ${callId} in room ${roomId}`);
-    socket.to(roomId).emit('user-joined-call', { userId: callerId });
-  });
-
-  // Handle real-time speech transcription
-  socket.on('speech-transcribed', async (data) => {
-    const { transcription, biometricData } = data;
-    const callInfo = activeCalls.get(socket.id);
-
-    console.log(`🔌 [SOCKET] Speech transcribed from user ${socket.id}:`, transcription);
-
-    if (!callInfo) {
-      console.log(`❌ [SOCKET] No call info found for socket ${socket.id}`);
-      return;
-    }
-
-    console.log(`🔌 [SOCKET] Call info:`, callInfo);
-
-    try {
-      // Analyze the speech in real-time
-      console.log(`🔌 [SOCKET] Sending analysis request...`);
-      const analysisResponse = await axios.post(`http://localhost:${PORT}/api/analyze-call-speech`, {
-        callerId: callInfo.callerId,
-        recipientId: callInfo.recipientId,
-        transcription,
-        biometricData
-      });
-
-      const analysis = analysisResponse.data;
-      console.log(`✅ [SOCKET] Analysis completed:`, analysis);
-
-      // Send analysis back to the caller
-      socket.emit('speech-analysis', {
-        transcription,
-        analysis,
-        timestamp: new Date().toISOString()
-      });
-
-      console.log(`🔌 [SOCKET] Sent speech-analysis event to caller`);
-
-      // If there's an alert or important suggestion, also notify the room
-      if (analysis.shouldRespond && (analysis.alert || analysis.biometricAlert)) {
-        console.log(`🚨 [SOCKET] Sending call alert to room ${callInfo.roomId}`);
-        socket.to(callInfo.roomId).emit('call-alert', {
-          type: analysis.alert ? 'speech' : 'biometric',
-          message: analysis.alert || analysis.biometricAlert,
-          severity: 'warning'
-        });
-      }
-
-    } catch (error) {
-      console.error('❌ [SOCKET] Error analyzing speech:', error.message);
-      socket.emit('speech-analysis-error', { error: 'Failed to analyze speech' });
-    }
-  });
-
-  // Handle leaving call
-  socket.on('leave-call', () => {
-    const callInfo = activeCalls.get(socket.id);
-    if (callInfo) {
-      socket.to(callInfo.roomId).emit('user-left-call', { userId: callInfo.callerId });
-      activeCalls.delete(socket.id);
-      console.log(`🔌 [SOCKET] User ${callInfo.callerId} left call ${callInfo.callId}`);
-    }
-  });
-
-  // Handle disconnect
-  socket.on('disconnect', () => {
-    const callInfo = activeCalls.get(socket.id);
-    if (callInfo) {
-      socket.to(callInfo.roomId).emit('user-left-call', { userId: callInfo.callerId });
-      activeCalls.delete(socket.id);
-    }
-    console.log('🔌 [SOCKET] User disconnected:', socket.id);
-  });
+// Update user's biometric data in real-time
+gebyMonitor.setDataCallback((data) => {
+  // Update Geby's user data with real biometric info
+  const geby = users.find(u => u.id === 1);
+  if (geby) {
+    geby.recentActivity = {
+      mood: data.stressLevel === 'high' ? 'stressed' : 
+            data.stressLevel === 'medium' ? 'focused' : 'calm',
+      heartRate: data.heartRate,
+      lastActive: data.timestamp,
+      temperature: data.temperature,
+      humidity: data.humidity,
+      activity: data.activity
+    };
+  }
 });
 
-server.listen(PORT, () => {
-  console.log(`CareAware backend running on port ${PORT}`);
-  console.log(`Socket.IO server ready for real-time call features`);
+app.listen(PORT, async () => {
+  console.log(`🚀 CareAware backend running on port ${PORT}`);
+  console.log(`📊 Dashboard: http://localhost:${PORT}`);
+  console.log(`🔗 API Base: http://localhost:${PORT}/api`);
+  console.log(`📁 Static files: http://localhost:${PORT}/pfps/`);
+  
+  // Try to connect to Geby's biometric monitor
+  console.log(`🔌 Attempting to connect to Geby's monitor...`);
+  const connected = await gebyMonitor.connect('COM5', 115200);
+  
+  if (connected) {
+    console.log(`✅ Successfully connected to Geby's biometric monitor!`);
+    console.log(`📡 Real-time health data will be available for Geby (User ID: 1)`);
+  } else {
+    console.log(`⚠️  Could not connect to GPIO monitor. Using mock data for all users.`);
+    console.log(`💡 Make sure the device is connected to COM5 and test.py works first.`);
+  }
 }); 
