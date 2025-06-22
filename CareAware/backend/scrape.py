@@ -11,6 +11,12 @@ import torch
 processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
 model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-base")
 
+
+def save_cookies(context, path="cookies.json"):
+    cookies = context.cookies()
+    with open(path, "w") as f:
+        json.dump(cookies, f)
+
 def download_image(url, save_path):
     try:
         r = requests.get(url)
@@ -36,8 +42,21 @@ def scrape_all_tweets(username, scroll_delay=2, max_idle_scrolls=5):
     os.makedirs(image_dir, exist_ok=True)
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True, slow_mo=50)
-        context = browser.new_context()
+        browser = p.chromium.launch(headless=False, slow_mo=50)
+        
+        storage_file = "x_storage_state.json"
+        if os.path.exists(storage_file):
+            context = browser.new_context(storage_state=storage_file)
+        else:
+            # First-time login
+            context = browser.new_context()
+            page = context.new_page()
+            page.goto("https://x.com/login")
+            print("🔐 Please log in manually. You have 60 seconds.")
+            page.wait_for_timeout(60000)  # Wait 60 seconds
+            context.storage_state(path=storage_file)
+            print("✅ Session saved.")
+
         page = context.new_page()
 
         print(f"Opening profile: https://x.com/{username}")
@@ -102,6 +121,8 @@ def scrape_all_tweets(username, scroll_delay=2, max_idle_scrolls=5):
             page.wait_for_timeout(scroll_delay * 1000)
 
         print(f"✅ Finished scrolling. Total tweets collected: {len(data['tweets'])}")
+
+        save_cookies(context)
         browser.close()
 
     filename = f"{username}_data.json"
