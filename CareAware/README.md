@@ -10,7 +10,7 @@ CareAware is a revolutionary social networking platform that integrates AI-drive
 - **Empathy Alerts**: Real-time warnings before sending potentially sensitive messages
 - **Conversation Starters**: AI-suggested topics based on mutual interests and recent activities
 - **Biometric Integration**: Smartwatch data analysis for stress level monitoring
-- **Social Media Analysis**: Contextual insights from X activity
+- **Social Media Analysis**: Contextual insights from X.com activity
 
 #### 🎨 Beautiful Autumn-Themed UI
 - Warm, inviting color palette inspired by autumn
