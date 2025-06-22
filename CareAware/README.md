@@ -1,8 +1,8 @@
-# CareAware 🌱
+# Speakeasy 🌱
 
 ## Mental Health-Aware Social Network MVP
 
-CareAware is a revolutionary social networking platform that integrates AI-driven mental health awareness directly into social interactions, enhancing empathy and sensitivity in digital communications.
+Speakeasy is a revolutionary social networking platform that integrates AI-driven mental health awareness directly into social interactions, enhancing empathy and sensitivity in digital communications.
 
 ### 🎯 Features
 
