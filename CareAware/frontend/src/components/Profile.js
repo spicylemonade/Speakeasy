@@ -1,60 +1,50 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import Icon from './Icon';
+import { getApiUrl } from '../config';
 
 const Profile = ({ currentUser }) => {
-  const [userStats, setUserStats] = useState(null);
-  const [recentPosts, setRecentPosts] = useState([]);
-  const [interests, setInterests] = useState([]);
+  const { userId } = useParams();
+  const [profileData, setProfileData] = useState(null);
+  const [userPosts, setUserPosts] = useState([]);
+  const [isCurrentUser, setIsCurrentUser] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchProfileData();
-  }, []);
+    const targetId = userId || currentUser.id.toString();
+    setIsCurrentUser(!userId || userId === currentUser.id.toString());
+    fetchProfileData(targetId);
+  }, [userId, currentUser.id]);
 
-  const fetchProfileData = async () => {
+  const fetchProfileData = async (id) => {
+    setLoading(true);
     try {
-      // Mock user stats
-      const stats = {
-        postsCount: 24,
-        empathyScore: 92,
-        conversationsStarted: 18,
-        supportGiven: 45,
-        joinedDate: 'October 2023',
-        activeStreak: 12
+      // Fetch user profile details
+      const userResponse = await fetch(getApiUrl(`/api/users/${id}`));
+      if (!userResponse.ok) throw new Error('User not found');
+      const userData = await userResponse.json();
+      
+      // Fetch all posts and filter for the user
+      const postsResponse = await fetch(getApiUrl('/api/posts'));
+      const allPosts = await postsResponse.json();
+      const userPostsData = allPosts.filter(post => post.userId === parseInt(id));
+      setUserPosts(userPostsData);
+
+      // Mocking stats and interests as they are not in the user model from the backend
+      const mockStats = {
+        postsCount: userPostsData.length,
+        empathyScore: Math.floor(Math.random() * 20) + 80, // 80-99
+        conversationsStarted: Math.floor(Math.random() * 20) + 5,
+        supportGiven: Math.floor(Math.random() * 50) + 10,
+        joinedDate: 'October 2023', // Static for now
+        activeStreak: Math.floor(Math.random() * 15) + 1,
       };
 
-      const posts = [
-        {
-          id: 1,
-          content: "Grateful for the small moments of joy today. Sometimes it's the little things that matter most.",
-          timestamp: 'Yesterday',
-          likes: 8,
-          comments: 3
-        },
-        {
-          id: 2,
-          content: "Remember to be kind to yourself. You're doing better than you think.",
-          timestamp: new Date(Date.now() - 172800000).toISOString(),
-          likes: 15,
-          comments: 7
-        }
-      ];
+      setProfileData({ user: userData, stats: mockStats });
 
-      const userInterests = [
-        { name: 'Photography', posts: 12 },
-        { name: 'Mental Health', posts: 8 },
-        { name: 'Star Wars', posts: 6 },
-        { name: 'Hiking', posts: 4 },
-        { name: 'Cooking', posts: 3 }
-      ];
-
-      setUserStats(stats);
-      setRecentPosts(posts);
-      setInterests(userInterests);
-      setLoading(false);
     } catch (error) {
-      console.error('Error fetching profile data:', error);
+      console.error("Error fetching profile data:", error);
+    } finally {
       setLoading(false);
     }
   };
@@ -69,21 +59,25 @@ const Profile = ({ currentUser }) => {
     return `${diffInDays} days ago`;
   };
 
-  if (loading) {
+  if (loading || !profileData) {
     return (
       <div className="loading">
         <div className="spinner"></div>
-        <p>Loading your profile...</p>
+        <p>Loading profile...</p>
       </div>
     );
   }
+
+  const { user, stats } = profileData;
+  const posts = userPosts;
+  const interests = user.interests.map(interest => ({ name: interest, posts: Math.floor(Math.random() * 10) + 1 }));
 
   return (
     <div className="main-layout">
       <div className="main-column">
         <div className="page-header">
-          <h1>{currentUser.name}</h1>
-          <p>{recentPosts.length} posts</p>
+          <h1>{user.name}</h1>
+          <p>{posts.length} posts</p>
         </div>
 
         {/* Profile Header */}
@@ -92,8 +86,8 @@ const Profile = ({ currentUser }) => {
           <div className="card-body" style={{ padding: 'var(--space-md) var(--space-lg)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <img
-                src={currentUser.avatar}
-                alt={currentUser.name}
+                src={user.avatar}
+                alt={user.name}
                 style={{
                   width: '134px',
                   height: '134px',
@@ -104,23 +98,27 @@ const Profile = ({ currentUser }) => {
                 }}
               />
               <div style={{ display: 'flex', gap: 'var(--space-md)', marginTop: 'var(--space-sm)' }}>
-                <button className="btn btn-outline">
-                  <Icon name="mail" />
-                </button>
-                <button className="btn btn-primary">
-                  <Icon name="plus" /> Follow
-                </button>
+                {!isCurrentUser && (
+                  <>
+                    <button className="btn btn-outline">
+                      <Icon name="messages" />
+                    </button>
+                    <button className="btn btn-primary">
+                      <Icon name="profile" /> Follow
+                    </button>
+                  </>
+                )}
               </div>
             </div>
 
             <div style={{ marginTop: 'var(--space-md)' }}>
-              <h2 style={{ fontSize: 'var(--font-size-xl)', margin: 0, color: 'var(--text-primary)' }}>{currentUser.name}</h2>
-              <p style={{ color: 'var(--text-secondary)', margin: '0 0 var(--space-md) 0' }}>@{currentUser.username}</p>
-              <p style={{ color: 'var(--text-primary)' }}>{currentUser.bio}</p>
+              <h2 style={{ fontSize: 'var(--font-size-xl)', margin: 0, color: 'var(--text-primary)' }}>{user.name}</h2>
+              <p style={{ color: 'var(--text-secondary)', margin: '0 0 var(--space-md) 0' }}>@{user.username}</p>
+              <p style={{ color: 'var(--text-primary)' }}>{user.bio}</p>
             </div>
 
             <div style={{ display: 'flex', gap: 'var(--space-lg)', color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)', marginTop: 'var(--space-md)' }}>
-              <span><Icon name="calendar" /> Joined {userStats.joinedDate}</span>
+              <span><Icon name="calendar" /> Joined {stats.joinedDate}</span>
               <span><Icon name="mapPin" /> <a href="#" style={{ color: 'var(--text-link)', textDecoration: 'none' }}>speakeasy.com</a></span>
             </div>
           </div>
@@ -138,19 +136,19 @@ const Profile = ({ currentUser }) => {
           margin: 'var(--space-lg)'
         }}>
           <div style={{ padding: 'var(--space-md)', background: 'var(--bg-primary)', textAlign: 'center' }}>
-            <div style={{ fontWeight: 'bold', fontSize: 'var(--font-size-lg)', color: 'var(--text-primary)' }}>{userStats.postsCount}</div>
+            <div style={{ fontWeight: 'bold', fontSize: 'var(--font-size-lg)', color: 'var(--text-primary)' }}>{stats.postsCount}</div>
             <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>Posts</div>
           </div>
           <div style={{ padding: 'var(--space-md)', background: 'var(--bg-primary)', textAlign: 'center' }}>
-            <div style={{ fontWeight: 'bold', fontSize: 'var(--font-size-lg)', color: 'var(--text-primary)' }}>{userStats.empathyScore}%</div>
+            <div style={{ fontWeight: 'bold', fontSize: 'var(--font-size-lg)', color: 'var(--text-primary)' }}>{stats.empathyScore}%</div>
             <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>Empathy Score</div>
           </div>
           <div style={{ padding: 'var(--space-md)', background: 'var(--bg-primary)', textAlign: 'center' }}>
-            <div style={{ fontWeight: 'bold', fontSize: 'var(--font-size-lg)', color: 'var(--text-primary)' }}>{userStats.conversationsStarted}</div>
+            <div style={{ fontWeight: 'bold', fontSize: 'var(--font-size-lg)', color: 'var(--text-primary)' }}>{stats.conversationsStarted}</div>
             <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>Conversations</div>
           </div>
           <div style={{ padding: 'var(--space-md)', background: 'var(--bg-primary)', textAlign: 'center' }}>
-            <div style={{ fontWeight: 'bold', fontSize: 'var(--font-size-lg)', color: 'var(--text-primary)' }}>{userStats.supportGiven}</div>
+            <div style={{ fontWeight: 'bold', fontSize: 'var(--font-size-lg)', color: 'var(--text-primary)' }}>{stats.supportGiven}</div>
             <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>Support Given</div>
           </div>
         </div>
@@ -158,13 +156,13 @@ const Profile = ({ currentUser }) => {
         {/* Recent Posts Section */}
         <div className="posts-container" style={{ marginTop: 'var(--space-xl)' }}>
            <h3 style={{ padding: '0 var(--space-lg) var(--space-md)', color: 'var(--text-primary)' }}>Recent Posts</h3>
-          {recentPosts.map(post => (
+          {posts.map(post => (
             <div key={post.id} className="post">
               <div className="post-header">
-                <img src={currentUser.avatar} alt={currentUser.name} className="post-avatar" />
+                <img src={user.avatar} alt={user.name} className="post-avatar" />
                 <div className="post-meta">
-                  <span className="post-author">{currentUser.name}</span>
-                  <span className="post-username">{currentUser.username}</span>
+                  <span className="post-author">{user.name}</span>
+                  <span className="post-username">@{user.username}</span>
                   <span className="post-time">{formatTime(post.timestamp)}</span>
                 </div>
               </div>
@@ -190,7 +188,7 @@ const Profile = ({ currentUser }) => {
           <div className="widget-item">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ color: 'var(--text-secondary)' }}>Active Streak</span>
-              <span style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{userStats.activeStreak} days</span>
+              <span style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{stats.activeStreak} days</span>
             </div>
           </div>
         </div>

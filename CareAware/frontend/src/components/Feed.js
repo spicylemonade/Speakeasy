@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Icon from './Icon';
+import { getApiUrl } from '../config';
 
 const Feed = ({ currentUser }) => {
   const [posts, setPosts] = useState([]);
@@ -13,90 +14,14 @@ const Feed = ({ currentUser }) => {
   }, []);
 
   const fetchPosts = async () => {
+    setLoading(true);
     try {
-      // Mock posts with diverse topics
-      const mockPosts = [
-        {
-          id: 1,
-          user: {
-            id: 5,
-            name: "Laura Miller",
-            username: "laura_m",
-            avatar: "https://i.pravatar.cc/100?img=5"
-          },
-          content: "My golden retriever puppy just discovered his own reflection. The mix of confusion and excitement is the purest thing I've seen all week. #DogsofSpeakeasy #PuppyLife",
-          timestamp: new Date(Date.now() - 3600000).toISOString(),
-          likes: 25,
-          comments: 6,
-          isLiked: false,
-          empathyInsight: null
-        },
-        {
-          id: 2,
-          user: {
-            id: 3,
-            name: "Sarah Williams",
-            username: "sarah_w",
-            avatar: "https://i.pravatar.cc/100?img=3"
-          },
-          content: "Just saw 'Challengers' and I'm speechless. The cinematography, the score, the tension... an absolute masterpiece. A must-watch for film lovers! #MovieReview #Challengers",
-          timestamp: new Date(Date.now() - 14400000).toISOString(),
-          likes: 18,
-          comments: 7,
-          isLiked: true,
-          empathyInsight: {
-            type: 'shared_interest',
-            message: 'Sarah is excited about movies. This is a great topic to connect on.',
-            context: 'Sharing a positive review',
-            suggestedResponse: 'Ask what other movies she recommends or share your own thoughts on it.'
-          }
-        },
-        {
-          id: 3,
-          user: {
-            id: 4,
-            name: "Alex Chen",
-            username: "alex_c",
-            avatar: "https://i.pravatar.cc/100?img=4"
-          },
-          content: "The latest funding rounds for xAI are staggering. The AI space is moving at an incredible pace. What are your thoughts on the future of AGI and its ethical implications? #AI #VentureCapital #Tech",
-          timestamp: new Date(Date.now() - 21600000).toISOString(),
-          likes: 32,
-          comments: 15,
-          isLiked: false,
-          empathyInsight: {
-            type: 'professional_interest',
-            message: 'Alex is interested in deep tech topics.',
-            context: 'Discussing AI advancements',
-            suggestedResponse: 'Share an interesting article or ask a follow-up question about the ethical side.'
-          }
-        },
-        {
-          id: 4,
-          user: {
-            id: 6,
-            name: "David Kim",
-            username: "david_k",
-            avatar: "https://i.pravatar.cc/100?img=6"
-          },
-          content: "The city council vote on public transit funding next week is critical. It's easy to focus on national news, but these local decisions have a huge impact on our daily lives. Make sure you're registered to vote! #LocalPolitics #CivicDuty",
-          timestamp: new Date(Date.now() - 86400000).toISOString(),
-          likes: 9,
-          comments: 4,
-          isLiked: false,
-          empathyInsight: {
-            type: 'civic_engagement',
-            message: 'David is passionate about local politics. Acknowledge his point of view respectfully.',
-            context: 'Encouraging civic participation',
-            suggestedResponse: 'Thank him for the reminder or ask where to find more info on the candidates.'
-          }
-        }
-      ];
-
-      setPosts(mockPosts);
-      setLoading(false);
+      const response = await fetch(getApiUrl('/api/posts'));
+      const data = await response.json();
+      setPosts(data.map(p => ({ ...p, isLiked: false }))); // Add client-side like tracking
     } catch (error) {
       console.error('Error fetching posts:', error);
+    } finally {
       setLoading(false);
     }
   };
@@ -185,13 +110,15 @@ const Feed = ({ currentUser }) => {
               <div key={post.id} className="post">
                 {/* Post Header */}
                 <div className="post-header">
-                  <img
-                    src={post.user.avatar}
-                    alt={post.user.name}
-                    className="post-avatar"
-                  />
+                  <Link to={`/profile/${post.user.id}`}>
+                    <img
+                      src={post.user.avatar}
+                      alt={post.user.name}
+                      className="post-avatar"
+                    />
+                  </Link>
                   <div className="post-meta">
-                    <span className="post-author">{post.user.name}</span>
+                    <Link to={`/profile/${post.user.id}`} className="post-author">{post.user.name}</Link>
                     <span className="post-username">@{post.user.username}</span>
                     <span className="post-time">· {formatTime(post.timestamp)}</span>
                   </div>
@@ -323,15 +250,17 @@ const Feed = ({ currentUser }) => {
           </div>
           <div className="widget-item">
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-              <img
-                src="https://i.pravatar.cc/100?img=5"
-                alt="Jamie"
-                style={{ width: '48px', height: '48px', borderRadius: '50%' }}
-              />
+              <Link to="/profile/2">
+                <img
+                  src="https://i.pravatar.cc/100?img=5"
+                  alt="Connie"
+                  style={{ width: '48px', height: '48px', borderRadius: '50%' }}
+                />
+              </Link>
               <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: '700' }}>Jamie Lee</div>
+                <Link to="/profile/2" className="post-author" style={{ textDecoration: 'none' }}>Connie</Link>
                 <div style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
-                  @jamie_lee
+                  @connie_c
                 </div>
               </div>
               <button className="btn btn-secondary">Support</button>
@@ -339,15 +268,17 @@ const Feed = ({ currentUser }) => {
           </div>
           <div className="widget-item">
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-              <img
-                src="https://i.pravatar.cc/100?img=6"
-                alt="Morgan"
-                style={{ width: '48px', height: '48px', borderRadius: '50%' }}
-              />
+              <Link to="/profile/3">
+                <img
+                  src="https://i.pravatar.cc/100?img=11"
+                  alt="William"
+                  style={{ width: '48px', height: '48px', borderRadius: '50%' }}
+                />
+              </Link>
               <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: '700' }}>Morgan Davis</div>
+                <Link to="/profile/3" className="post-author" style={{ textDecoration: 'none' }}>William</Link>
                 <div style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
-                  @morgan_d
+                  @will_w
                 </div>
               </div>
               <button className="btn btn-secondary">Support</button>

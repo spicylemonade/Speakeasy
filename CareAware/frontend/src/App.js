@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
+import { getApiUrl } from './config';
 
 // Components
 import Navbar from './components/Navbar';
@@ -14,18 +15,44 @@ import CallPage from './components/CallPage';
 
 function App() {
   const [darkMode, setDarkMode] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [loading, setLoading] = useState(true);
   
-  // Mock current user data
-  const currentUser = {
-    id: 2,
-    name: "Alex Chen",
-    username: "alex_c",
-    avatar: "https://i.pravatar.cc/100?img=2"
-  };
+  // Hardcoded current user ID
+  const currentUserId = 1; // Geby
+
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const response = await fetch(getApiUrl(`/api/users/${currentUserId}`));
+        if (!response.ok) {
+          throw new Error('Failed to fetch user data');
+        }
+        const userData = await response.json();
+        setCurrentUser(userData);
+      } catch (error) {
+        console.error("Error fetching current user:", error);
+        // Handle error, maybe show an error message
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCurrentUser();
+  }, [currentUserId]);
 
   const toggleDarkMode = () => {
     setDarkMode(!darkMode);
   };
+
+  if (loading) {
+    return (
+      <div className="loading">
+        <div className="spinner"></div>
+        <p>Loading CareAware...</p>
+      </div>
+    );
+  }
 
   return (
     <Router>
@@ -43,6 +70,7 @@ function App() {
             <Route path="/feed" element={<Feed currentUser={currentUser} />} />
             <Route path="/messages" element={<Messages currentUser={currentUser} />} />
             <Route path="/profile" element={<Profile currentUser={currentUser} />} />
+            <Route path="/profile/:userId" element={<Profile currentUser={currentUser} />} />
             <Route path="/settings" element={
               <Settings 
                 currentUser={currentUser}
@@ -51,10 +79,10 @@ function App() {
               />
             } />
             <Route path="/compose" element={<ComposePost currentUser={currentUser} />} />
-            <Route path="/call/:userId" element={<CallPage />} />
+            <Route path="/call/:userId" element={<CallPage currentUser={currentUser} />} />
           </Routes>
         </div>
-      </div>
+    </div>
     </Router>
   );
 }

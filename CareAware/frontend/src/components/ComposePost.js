@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Icon from './Icon';
+import { getApiUrl } from '../config';
 
 const ComposePost = ({ currentUser }) => {
   const [content, setContent] = useState('');
@@ -26,11 +27,20 @@ const ComposePost = ({ currentUser }) => {
     setIsPosting(true);
     
     try {
-      // Simulate posting delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // In a real app, this would send to backend
-      console.log('Posting:', { content, userId: currentUser.id });
+      const response = await fetch(getApiUrl('/api/posts'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          content: content.trim(),
+          userId: currentUser.id,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create post');
+      }
       
       // Reset form and navigate
       setContent('');

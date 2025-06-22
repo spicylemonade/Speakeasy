@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Icon from './Icon';
+import { getApiUrl } from '../config';
 
 const Messages = ({ currentUser }) => {
   const [conversations, setConversations] = useState([]);
@@ -9,76 +10,26 @@ const Messages = ({ currentUser }) => {
   const [aiAnalysis, setAiAnalysis] = useState(null);
   const [loading, setLoading] = useState(true);
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [enterPressCount, setEnterPressCount] = useState(0);
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchConversations();
   }, []);
 
-  useEffect(() => {
-    if (message && selectedConversation) {
-      const timeoutId = setTimeout(() => {
-        analyzeMessage();
-      }, 500);
-      
-      return () => clearTimeout(timeoutId);
-    } else {
-      setAiAnalysis(null);
-    }
-  }, [message, selectedConversation]);
-
   const fetchConversations = async () => {
+    if (!currentUser) return;
+    setLoading(true);
     try {
-      // Mock conversation data
-      const mockConversations = [
-        {
-          id: 1,
-          otherUser: {
-            id: 1,
-            name: "Maddy Johnson",
-            username: "maddy_j",
-            avatar: "https://i.pravatar.cc/100?img=1"
-          },
-          messages: [
-            {
-              id: 1,
-              senderId: 1,
-              content: "Hey Alex! Thanks for checking in on me. It's been really tough lately.",
-              timestamp: new Date(Date.now() - 3600000).toISOString()
-            },
-            {
-              id: 2,
-              senderId: 2,
-              content: "I'm here for you, Maddy. Do you want to talk about it?",
-              timestamp: new Date(Date.now() - 3000000).toISOString(),
-              aiSuggested: true
-            }
-          ]
-        },
-        {
-          id: 2,
-          otherUser: {
-            id: 3,
-            name: "Sarah Williams",
-            username: "sarah_w",
-            avatar: "https://i.pravatar.cc/100?img=3"
-          },
-          messages: [
-            {
-              id: 1,
-              senderId: 3,
-              content: "Just got back from an amazing hike! The autumn colors were incredible",
-              timestamp: new Date(Date.now() - 7200000).toISOString()
-            }
-          ]
-        }
-      ];
-
-      setConversations(mockConversations);
-      setSelectedConversation(mockConversations[0]);
-      setLoading(false);
+      const response = await fetch(getApiUrl(`/api/conversations/${currentUser.id}`));
+      const data = await response.json();
+      setConversations(data);
+      if (data.length > 0) {
+        setSelectedConversation(data[0]);
+      }
     } catch (error) {
       console.error('Error fetching conversations:', error);
+    } finally {
       setLoading(false);
     }
   };
@@ -87,82 +38,25 @@ const Messages = ({ currentUser }) => {
     if (!selectedConversation || !message.trim()) return;
 
     try {
-      // Mock AI analysis
-      const analysis = await mockAIAnalysis(selectedConversation.otherUser.id, message);
+      console.log('Analyzing message:', message);
+      console.log('Recipient:', selectedConversation.otherUser.name);
+      const response = await fetch(getApiUrl('/api/analyze-message'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          recipientId: selectedConversation.otherUser.id,
+          messageContent: message
+        }),
+      });
+      const analysis = await response.json();
+      console.log('AI Analysis received:', analysis);
+      console.log('Analysis alert:', analysis.alert);
+      console.log('Analysis suggestion:', analysis.suggestion);
+      console.log('Analysis biometricAlert:', analysis.biometricAlert);
       setAiAnalysis(analysis);
     } catch (error) {
       console.error('Error analyzing message:', error);
     }
-  };
-
-  const mockAIAnalysis = async (recipientId, messageContent) => {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 200));
-
-    let response = {
-      alert: null,
-      suggestion: null,
-      biometricAlert: null,
-      confidence: 0.85
-    };
-
-    // Check for sensitive topics with Maddy (who lost her mom)
-    if (recipientId === 1) {
-      const sensitiveKeywords = ['mom', 'mother', 'family', 'parent', 'how is your mom'];
-      const containsSensitive = sensitiveKeywords.some(keyword => 
-        messageContent.toLowerCase().includes(keyword)
-      );
-
-      if (containsSensitive) {
-        response.alert = {
-          type: 'empathy_warning',
-          message: 'Sensitivity Alert: Maddy recently lost her mother. This topic might be very painful for her right now. Consider a different approach or offer support instead.',
-          severity: 'high'
-        };
-      }
-
-      // Biometric alert for Maddy
-      if (Math.random() > 0.6) {
-        response.biometricAlert = {
-          type: 'biometric_warning',
-          message: 'Biometric Alert: Maddy\'s heart rate is elevated (85 BPM). She might be stressed - consider a gentle, supportive approach.',
-          severity: 'medium'
-        };
-      }
-
-      // Conversation suggestions
-      if (!containsSensitive) {
-        response.suggestion = {
-          type: 'conversation_starter',
-          message: 'Conversation Tip: Maddy loves Star Wars and photography. Maybe ask about her latest photo projects or favorite Star Wars moments to lift her spirits!',
-          topics: ['Star Wars', 'Photography']
-        };
-      }
-    }
-
-    // Check for Sarah (medical student)
-    if (recipientId === 3) {
-      const stressKeywords = ['stress', 'exam', 'study', 'pressure'];
-      const containsStress = stressKeywords.some(keyword => 
-        messageContent.toLowerCase().includes(keyword)
-      );
-
-      if (containsStress) {
-        response.suggestion = {
-          type: 'empathy_tip',
-          message: 'Empathy Tip: Sarah has been stressed about medical school. Show understanding and maybe suggest a study break or outdoor activity.',
-          topics: ['Study Support', 'Outdoor Activities']
-        };
-      } else {
-        response.suggestion = {
-          type: 'conversation_starter',
-          message: 'Conversation Tip: Sarah just posted about hiking! Ask her about the autumn colors or her favorite hiking spots.',
-          topics: ['Hiking', 'Photography', 'Nature']
-        };
-      }
-    }
-
-    return response;
   };
 
   const sendMessage = async () => {
@@ -171,33 +65,39 @@ const Messages = ({ currentUser }) => {
     setSendingMessage(true);
 
     try {
-      const newMessage = {
-        id: selectedConversation.messages.length + 1,
-        senderId: currentUser.id,
-        content: message.trim(),
-        timestamp: new Date().toISOString(),
-        aiSuggested: false
-      };
+      const response = await fetch(getApiUrl('/api/messages'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversationId: selectedConversation.id,
+          senderId: currentUser.id,
+          content: message.trim(),
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to send message');
+      
+      const newMessage = await response.json();
 
       // Update conversation with new message
       const updatedConversations = conversations.map(conv => {
         if (conv.id === selectedConversation.id) {
-          return {
-            ...conv,
-            messages: [...conv.messages, newMessage]
-          };
+          // Check if the message is already there to prevent duplicates
+          if (conv.messages.find(m => m.id === newMessage.id)) {
+            return conv;
+          }
+          return { ...conv, messages: [...conv.messages, newMessage] };
         }
         return conv;
       });
 
       setConversations(updatedConversations);
-      setSelectedConversation({
-        ...selectedConversation,
-        messages: [...selectedConversation.messages, newMessage]
-      });
+      const newSelectedConversation = updatedConversations.find(c => c.id === selectedConversation.id);
+      setSelectedConversation(newSelectedConversation);
 
       setMessage('');
       setAiAnalysis(null);
+      setEnterPressCount(0); // Reset enter press count
     } catch (error) {
       console.error('Error sending message:', error);
     } finally {
@@ -215,7 +115,23 @@ const Messages = ({ currentUser }) => {
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      sendMessage();
+      if (enterPressCount === 0) {
+        // First enter press: analyze message
+        analyzeMessage();
+        setEnterPressCount(1);
+      } else {
+        // Second enter press: send message
+        sendMessage();
+      }
+    }
+  };
+
+  const handleInputChange = (e) => {
+    setMessage(e.target.value);
+    // Reset analysis and enter count if user modifies the message
+    if (enterPressCount > 0) {
+      setEnterPressCount(0);
+      setAiAnalysis(null);
     }
   };
 
@@ -344,12 +260,13 @@ const Messages = ({ currentUser }) => {
                 <div className="message-input-wrapper">
                   <textarea
                     className="message-input"
-                    placeholder={`Message ${selectedConversation.otherUser.name}...`}
+                    placeholder="Type a message... (Press Enter to get AI suggestions)"
                     value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    onKeyPress={handleKeyPress}
+                    onChange={handleInputChange}
+                    onKeyDown={handleKeyPress}
+                    rows="1"
                     disabled={sendingMessage}
-                  />
+                  ></textarea>
                   <button
                     type="button"
                     className="send-button"

@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { io } from 'socket.io-client';
 import Icon from './Icon';
+import { getApiUrl } from '../config';
 
-const CallPage = () => {
+const CallPage = ({ currentUser }) => {
   const { userId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -12,9 +14,175 @@ const CallPage = () => {
   const [callStatus, setCallStatus] = useState('Calling...');
   const [callDuration, setCallDuration] = useState(0);
   const [insights, setInsights] = useState(null);
+  const [isListening, setIsListening] = useState(false);
+  const [speechAnalysis, setSpeechAnalysis] = useState(null);
+  const [biometricData, setBiometricData] = useState(null);
+  const [realtimeInsights, setRealtimeInsights] = useState([]);
+  const [lastTranscription, setLastTranscription] = useState('');
+  
+  const socketRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const speechRecognitionRef = useRef(null);
+  const callIdRef = useRef(`call-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
+
+  // Initialize speech recognition (no Socket.IO for now)
+  useEffect(() => {
+    // Initialize Web Speech API if available
+    if ('webkitSpeechRecognition' in window) {
+      const recognition = new window.webkitSpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[event.results.length - 1][0].transcript;
+        console.log('🎤 [FRONTEND] Speech recognized:', transcript);
+        // Store the transcript for later use when user presses the AI button
+        setLastTranscription(transcript);
+      };
+
+      recognition.onerror = (event) => {
+        console.error('❌ [FRONTEND] Speech recognition error:', event.error);
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        console.log('🎤 [FRONTEND] Speech recognition ended');
+        // Don't auto-restart - user controls when to listen
+      };
+
+      speechRecognitionRef.current = recognition;
+    }
+
+    return () => {
+      if (speechRecognitionRef.current) {
+        speechRecognitionRef.current.stop();
+      }
+    };
+  }, []);
+
+  // Fetch biometric data periodically
+  useEffect(() => {
+    const fetchBiometrics = async () => {
+      if (currentUser && callStatus === 'Connected') {
+        try {
+          const response = await fetch(getApiUrl(`/api/smartwatch/${currentUser.id}`));
+          const data = await response.json();
+          setBiometricData(data);
+        } catch (error) {
+          console.error('Error fetching biometric data:', error);
+        }
+      }
+    };
+
+    fetchBiometrics();
+    const interval = setInterval(fetchBiometrics, 10000); // Every 10 seconds
+
+    return () => clearInterval(interval);
+  }, [currentUser, callStatus]);
+
+  const startListening = () => {
+    if (speechRecognitionRef.current && !isListening) {
+      console.log('🎤 [FRONTEND] Starting speech recognition...');
+      setIsListening(true);
+      speechRecognitionRef.current.start();
+    }
+  };
+
+  const stopListening = () => {
+    if (speechRecognitionRef.current && isListening) {
+      console.log('🎤 [FRONTEND] Stopping speech recognition...');
+      setIsListening(false);
+      speechRecognitionRef.current.stop();
+    }
+  };
+
+  // Handle button press for AI guidance
+  const handleAIGuidanceToggle = async () => {
+    if (isListening) {
+      // Stop listening and process what was said
+      console.log('🧠 [FRONTEND] User pressed button - stopping listening and getting AI guidance');
+      stopListening();
+      
+      // Use the last transcription or a default message
+      const transcriptionToAnalyze = lastTranscription || "Hey, how are you doing today? I heard you've been working on some new projects.";
+      
+      try {
+        console.log('🧠 [FRONTEND] Sending transcription for analysis:', transcriptionToAnalyze);
+        
+        // Send transcription to server for analysis
+        const response = await fetch(getApiUrl('/api/analyze-call-speech'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            callerId: currentUser?.id || 1,
+            recipientId: parseInt(userId),
+            transcription: transcriptionToAnalyze,
+            biometricData: biometricData
+          })
+        });
+
+        const analysis = await response.json();
+        console.log('🧠 [FRONTEND] Received analysis:', analysis);
+
+        // Update speech analysis state
+        setSpeechAnalysis(analysis);
+        setRealtimeInsights(prev => [...prev.slice(-4), {
+          id: Date.now(),
+          transcription: transcriptionToAnalyze,
+          analysis: analysis,
+          timestamp: new Date().toISOString()
+        }]);
+
+        // Play TTS if there's a suggestion
+        if (analysis.suggestion) {
+          console.log('🔊 [FRONTEND] Playing TTS for suggestion:', analysis.suggestion);
+          await playTextToSpeech(analysis.suggestion);
+        }
+
+        // Clear the transcription after processing
+        setLastTranscription('');
+
+      } catch (error) {
+        console.error('❌ [FRONTEND] Error getting AI guidance:', error);
+      }
+    } else {
+      // Start listening
+      console.log('🎤 [FRONTEND] User pressed button - starting to listen');
+      setLastTranscription(''); // Clear any previous transcription
+      startListening();
+    }
+  };
+
+  const playTextToSpeech = async (text) => {
+    console.log('🔊 [FRONTEND] Requesting TTS for text:', text);
+    try {
+      const response = await fetch(getApiUrl('/api/text-to-speech'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, voice: 'lily' })
+      });
+
+      const result = await response.json();
+      console.log('🔊 [FRONTEND] TTS response:', result);
+      
+      if (result.success && result.audioData) {
+        console.log('🔊 [FRONTEND] Playing audio...');
+        const audio = new Audio(result.audioData);
+        audio.play()
+          .then(() => console.log('✅ [FRONTEND] Audio played successfully'))
+          .catch((error) => console.error('❌ [FRONTEND] Audio play failed:', error));
+      } else {
+        console.error('❌ [FRONTEND] TTS was not successful:', result);
+      }
+    } catch (error) {
+      console.error('❌ [FRONTEND] Error with TTS request:', error);
+    }
+  };
 
   const mockCallAIAnalysis = async (recipientId) => {
-    await new Promise(resolve => setTimeout(resolve, 5000)); // AI analysis starts after 5s
+    await new Promise(resolve => setTimeout(resolve, 3000)); // Initial analysis after 3s
 
     let response = {
       biometricAlert: null,
@@ -24,16 +192,19 @@ const CallPage = () => {
     if (recipientId === 1) {
       response.biometricAlert = {
         type: 'voice_stress',
-        message: "Biometric Alert: Maddy's voice tone suggests elevated stress. Consider a gentle, supportive approach.",
+        message: "Biometric Alert: Geby's heart rate is elevated. Consider a gentle, supportive approach.",
         severity: 'medium'
       };
       response.suggestion = {
         type: 'conversation_starter',
-        message: 'Conversation Tip: You both love hiking. Maybe ask about her recent trip to lift her spirits?',
-        topics: ['Hiking', 'Nature']
+        message: 'Conversation Tip: You both love coding. Maybe ask about recent projects to lift their spirits?',
+        topics: ['Coding', 'AI']
       };
     }
     setInsights(response);
+    
+    // Start listening for speech after initial analysis
+    startListening();
   };
 
   useEffect(() => {
@@ -98,6 +269,9 @@ const CallPage = () => {
           <button className={`btn-icon call-action-btn ${isMuted ? 'active' : ''}`} title={isMuted ? 'Unmute' : 'Mute'} onClick={() => setIsMuted(!isMuted)}>
             <Icon name={isMuted ? 'mic-off' : 'mic'} size={32} />
           </button>
+          <button className={`btn-icon call-action-btn ${isListening ? 'active' : ''}`} title={isListening ? 'Stop & Get AI Guidance' : 'Start Listening'} onClick={handleAIGuidanceToggle}>
+            <Icon name={isListening ? 'brain' : 'brain'} size={32} />
+          </button>
           <button className={`btn-icon call-action-btn ${isSpeaker ? 'active' : ''}`} title={isSpeaker ? 'Disable Speaker' : 'Enable Speaker'} onClick={() => setIsSpeaker(!isSpeaker)}>
             <Icon name="volume-2" size={32} />
           </button>
@@ -117,6 +291,66 @@ const CallPage = () => {
             </div>
         </div>
         
+        {/* Real-time Status */}
+        <div className="card" style={{marginBottom: 'var(--space-md)'}}>
+          <div className="card-body">
+            <h4 className="card-title" style={{display: 'flex', alignItems: 'center', gap: 'var(--space-xs)'}}>
+              <Icon name={isListening ? 'mic' : 'mic-off'} size={16} />
+              AI Assistant
+              {isListening && <div className="spinner" style={{width: '12px', height: '12px'}}></div>}
+            </h4>
+            <p style={{fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', margin: 0}}>
+              {isListening ? 'Listening... Click again when done talking to get AI guidance' : 'Click the brain icon to start listening'}
+            </p>
+            {biometricData && (
+              <div style={{marginTop: 'var(--space-sm)', fontSize: 'var(--font-size-sm)'}}>
+                <p style={{margin: 0}}>❤️ {biometricData.heartRate} BPM | 😌 {biometricData.stressLevel} stress</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Real-time Insights */}
+        {realtimeInsights.length > 0 && (
+          <div style={{marginBottom: 'var(--space-md)'}}>
+            <h4 style={{fontSize: 'var(--font-size-md)', marginBottom: 'var(--space-sm)'}}>Live Insights</h4>
+            <div style={{maxHeight: '200px', overflowY: 'auto'}}>
+              {realtimeInsights.slice(-3).map(insight => (
+                <div key={insight.id} className="alert alert-info" style={{marginBottom: 'var(--space-xs)', fontSize: 'var(--font-size-sm)'}}>
+                  {insight.type === 'alert' ? (
+                    <>
+                      <Icon name="alert-triangle" size={14} style={{ marginRight: '0.5rem' }} />
+                      {insight.message}
+                    </>
+                  ) : (
+                    <>
+                      {insight.analysis.alert && (
+                        <div style={{marginBottom: 'var(--space-xs)', color: 'var(--color-warning)'}}>
+                          <Icon name="alert" size={14} style={{ marginRight: '0.5rem' }} />
+                          {insight.analysis.alert}
+                        </div>
+                      )}
+                      {insight.analysis.suggestion && (
+                        <div style={{color: 'var(--color-success)'}}>
+                          <Icon name="lightbulb" size={14} style={{ marginRight: '0.5rem' }} />
+                          {insight.analysis.suggestion}
+                        </div>
+                      )}
+                      {insight.analysis.biometricAlert && (
+                        <div style={{marginTop: 'var(--space-xs)', color: 'var(--color-danger)'}}>
+                          <Icon name="watch" size={14} style={{ marginRight: '0.5rem' }} />
+                          {insight.analysis.biometricAlert}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Initial Insights */}
         {insights ? (
             <div className='animate-in'>
                 {insights.biometricAlert && (
